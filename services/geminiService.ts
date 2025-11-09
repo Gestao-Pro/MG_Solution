@@ -2,7 +2,7 @@
 /// <reference types="vite/client" />
 import { GoogleGenAI, Modality, GenerateContentResponse, Content, Type as GoogleAIType } from '@google/genai';
 import { Agent, UserProfile, Message, AgentId, Analysis } from '../types';
-import { ALL_AGENTS_MAP, SUPER_BOSS } from '../constants';
+import { ALL_AGENTS_MAP, ALL_AGENTS_LIST, SUPER_BOSS } from '../constants';
 import { decode, createWavBlob } from '../utils/audioUtils';
 
 let ai: GoogleGenAI;
@@ -148,7 +148,12 @@ export const generateChatResponse = async (
 export const generateSuperBossAnalysis = async (profile: UserProfile, history: Message[], newProblem: string): Promise<{ summary?: string, involvedAgentIds?: AgentId[], textResponse?: string }> => {
     const aiInstance = getAi();
     const model = 'gemini-2.5-flash';
-    const systemInstruction = `${SUPER_BOSS.systemInstruction}\nLista de Agentes Disponíveis:\n${Object.values(ALL_AGENTS_MAP).filter(a => a.id !== 'super_boss').map(a => `- ${a.name} (id: ${a.id}): ${a.specialty}`).join('\n')}\n\n${profileToContext(profile)}`;
+    // Build proper agent list text from Map values (Object.values on Map is empty)
+    const agentsListText = Array.from(ALL_AGENTS_MAP.values())
+        .filter(a => a.id !== 'super_boss')
+        .map(a => `- ${a.name} (id: ${a.id}): ${a.specialty}`)
+        .join('\n');
+    const systemInstruction = `${SUPER_BOSS.systemInstruction}\nLista de Agentes Disponíveis:\n${agentsListText}\n\n${profileToContext(profile)}`;
 
     const contents: Content[] = history.map(msg => ({
         role: msg.sender === 'user' ? 'user' : 'model',
@@ -163,13 +168,39 @@ export const generateSuperBossAnalysis = async (profile: UserProfile, history: M
     
     // Try to parse as JSON first
     try {
-        // Clean potential markdown code block fences
-        const cleanJson = responseText.replace(/^```json\n/, '').replace(/\n```$/, '');
+        // Clean potential markdown code block fences (with or without language tag)
+        const cleanJson = responseText
+            .replace(/^```(?:json)?\s*\n/, '')
+            .replace(/\n```$/, '')
+            .trim();
         const parsed = JSON.parse(cleanJson);
-        if (parsed.summary && parsed.involved_agents) {
+
+        const summary: string | undefined = parsed.summary;
+        const rawAgents: unknown = parsed.involved_agents ?? parsed.involvedAgents ?? parsed.agents;
+
+        // Normalize agent identifiers: accept IDs or names; return mapped IDs
+        const normalizeIdentifiers = (input: unknown): AgentId[] => {
+            if (!Array.isArray(input)) return [];
+            const tokens = input.filter(v => typeof v === 'string').map(v => (v as string).trim());
+            const byName = new Map(ALL_AGENTS_LIST.map(a => [a.name.toLowerCase(), a.id]));
+            const ids: AgentId[] = [];
+            for (const t of tokens) {
+                if (ALL_AGENTS_MAP.has(t)) {
+                    ids.push(t);
+                } else {
+                    const nameId = byName.get(t.toLowerCase());
+                    if (nameId) ids.push(nameId);
+                }
+            }
+            // Deduplicate
+            return Array.from(new Set(ids));
+        };
+
+        const involvedIds = normalizeIdentifiers(rawAgents);
+        if (summary) {
             return {
-                summary: parsed.summary,
-                involvedAgentIds: parsed.involved_agents,
+                summary,
+                involvedAgentIds: involvedIds,
             };
         }
     } catch (e) {
