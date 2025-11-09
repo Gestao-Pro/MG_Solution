@@ -165,16 +165,29 @@ export const generateSuperBossAnalysis = async (profile: UserProfile, history: M
     const result = await chat.sendMessage({ message: newProblem });
 
     const responseText = result.text.trim();
-    
-    // Try to parse as JSON first
-    try {
-        // Clean potential markdown code block fences (with or without language tag)
-        const cleanJson = responseText
-            .replace(/^```(?:json)?\s*\n/, '')
-            .replace(/\n```$/, '')
-            .trim();
-        const parsed = JSON.parse(cleanJson);
 
+    // Try to parse as JSON first (robust to code fences and extra text)
+    const tryParseJson = (raw: string): any | null => {
+        // Strategy 1: slice between first '{' and last '}'
+        const start = raw.indexOf('{');
+        const end = raw.lastIndexOf('}');
+        if (start !== -1 && end !== -1 && end > start) {
+            const candidate = raw.slice(start, end + 1);
+            try { return JSON.parse(candidate); } catch {}
+        }
+        // Strategy 2: strip markdown code fences
+        try {
+            const cleaned = raw
+                .replace(/^```(?:json)?\s*\n?/, '')
+                .replace(/\n?```\s*$/, '')
+                .trim();
+            return JSON.parse(cleaned);
+        } catch {}
+        return null;
+    };
+
+    const parsed = tryParseJson(responseText);
+    if (parsed) {
         const summary: string | undefined = parsed.summary;
         const rawAgents: unknown = parsed.involved_agents ?? parsed.involvedAgents ?? parsed.agents;
 
@@ -203,8 +216,6 @@ export const generateSuperBossAnalysis = async (profile: UserProfile, history: M
                 involvedAgentIds: involvedIds,
             };
         }
-    } catch (e) {
-        // Not JSON, treat as a regular text response
     }
     
     return { textResponse: responseText };
