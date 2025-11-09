@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Menu, Sun, Moon } from 'lucide-react';
+import { Menu, Sun, Moon, PenTool } from 'lucide-react';
 import IconButton from './IconButton';
 import { UserProfile } from '../types';
 
@@ -9,9 +9,10 @@ interface HeaderProps {
     theme: 'light' | 'dark';
     toggleTheme: () => void;
     userProfile: UserProfile;
+    onEditProfile: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, userProfile }) => {
+const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, userProfile, onEditProfile }) => {
     const userInitial = userProfile.userName ? userProfile.userName.charAt(0).toUpperCase() : '?';
 
     return (
@@ -32,6 +33,12 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, user
                         {userInitial}
                     </div>
                 </div>
+                <IconButton 
+                    icon={PenTool}
+                    onClick={onEditProfile}
+                    tooltip="Editar Perfil"
+                    className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                />
                 <IconButton 
                     icon={theme === 'dark' ? Sun : Moon} 
                     onClick={toggleTheme} 

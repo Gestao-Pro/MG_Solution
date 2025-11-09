@@ -77,6 +77,10 @@ const App: React.FC = () => {
         setIsOnboardingOpen(false);
     };
 
+    const handleEditProfile = () => {
+        setIsOnboardingOpen(true);
+    };
+
     const handleSelectAgent = (agentId: AgentId) => {
         setActiveAgentId(agentId);
         setView('chat');
@@ -133,6 +137,20 @@ const App: React.FC = () => {
                 return prev;
             });
         }, typingSpeed);
+    };
+
+    const handleClearConversation = (agentId: AgentId) => {
+        const agent = ALL_AGENTS_MAP.get(agentId);
+        if (!agent) return;
+        setChats(prev => ({
+            ...prev,
+            [agentId]: [{
+                id: `${agent.id}-initial`,
+                text: `Olá! Eu sou ${agent.name}, ${agent.specialty}. Como posso te ajudar hoje?`,
+                sender: 'agent',
+                agent: agent,
+            }]
+        }));
     };
 
     const handleSendMessage = useCallback(async (messageText: string, imageFile?: File) => {
@@ -239,7 +257,7 @@ const App: React.FC = () => {
     }, [userProfile, activeAgentId, chats]);
     
     if (isOnboardingOpen) {
-        return <OnboardingModal onSave={handleSaveProfile} />;
+        return <OnboardingModal onSave={handleSaveProfile} initialProfile={userProfile ?? undefined} />;
     }
 
     if (!userProfile) {
@@ -266,6 +284,7 @@ const App: React.FC = () => {
                     theme={theme}
                     toggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
                     userProfile={userProfile}
+                    onEditProfile={handleEditProfile}
                 />
                 <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-800">
                     {view === 'agent-selection' && (
@@ -282,7 +301,8 @@ const App: React.FC = () => {
                             onSendMessage={handleSendMessage}
                             loading={loading}
                             onBack={handleBackToSelection}
-                        />
+                            onClearConversation={() => handleClearConversation(activeAgent.id)}
+                         />
                     )}
                     {view === 'analysis' && analysis && userProfile && (
                         <AnalysisPanel 

@@ -13,9 +13,10 @@ interface ChatViewProps {
     onSendMessage: (message: string, imageFile?: File) => void;
     loading: boolean;
     onBack: () => void;
+    onClearConversation: () => void;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loading, onBack }) => {
+const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loading, onBack, onClearConversation }) => {
     const [inputText, setInputText] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -92,6 +93,15 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
         }
     };
 
+    const handleClearConversationClick = () => {
+        const confirmed = window.confirm(
+            'Deseja iniciar uma nova conversa? Isso limpará o histórico deste agente.'
+        );
+        if (confirmed) {
+            onClearConversation();
+        }
+    };
+
     return (
         <div className="flex-1 flex flex-col h-full bg-gray-100 dark:bg-gray-800">
             <header className="bg-white dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700 flex items-center shadow-md flex-shrink-0">
@@ -104,6 +114,14 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">{agent.name}</h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{agent.specialty}</p>
                     </div>
+                </div>
+                <div className="ml-auto">
+                    <button
+                        onClick={handleClearConversationClick}
+                        className="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                        Nova Conversa
+                    </button>
                 </div>
             </header>
 

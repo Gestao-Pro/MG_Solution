@@ -3,10 +3,11 @@ import { UserProfile } from '../types';
 
 interface OnboardingModalProps {
     onSave: (profile: UserProfile) => void;
+    initialProfile?: UserProfile;
 }
 
-const OnboardingModal: React.FC<OnboardingModalProps> = ({ onSave }) => {
-    const [profile, setProfile] = useState<UserProfile>({
+const OnboardingModal: React.FC<OnboardingModalProps> = ({ onSave, initialProfile }) => {
+    const [profile, setProfile] = useState<UserProfile>(initialProfile ?? {
         userName: '',
         companyName: '',
         companyField: '',
@@ -92,7 +93,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ onSave }) => {
                     </div>
 
                     <button type="submit" disabled={!isFormValid()} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                        Salvar e Iniciar
+                        {initialProfile ? 'Salvar' : 'Salvar e Iniciar'}
                     </button>
                 </form>
             </div>
