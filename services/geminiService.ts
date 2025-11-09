@@ -1,4 +1,5 @@
 // Fix: 'ContentPart' is not an exported member of '@google/genai'. Use 'Content' instead.
+/// <reference types="vite/client" />
 import { GoogleGenAI, Modality, GenerateContentResponse, Content, Type as GoogleAIType } from '@google/genai';
 import { Agent, UserProfile, Message, AgentId, Analysis } from '../types';
 import { ALL_AGENTS_MAP, SUPER_BOSS } from '../constants';
@@ -7,13 +8,18 @@ import { decode, createWavBlob } from '../utils/audioUtils';
 let ai: GoogleGenAI;
 const getAi = () => {
     if (!ai) {
-        // Fix: Per coding guidelines, the API key must be retrieved from `process.env.API_KEY`.
-        // This also resolves the TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
-        const apiKey = process.env.API_KEY;
+        // Resolve API key robustly from multiple sources (Vite define and import.meta.env)
+        const rawKey = (process.env.API_KEY as unknown as string)
+            || (process.env.GEMINI_API_KEY as unknown as string)
+            // import.meta.env is typed via Vite client types (see reference at top)
+            || (import.meta as any)?.env?.VITE_GEMINI_API_KEY
+            || (import.meta as any)?.env?.GEMINI_API_KEY;
+
+        const apiKey = typeof rawKey === 'string' ? rawKey.trim().replace(/^['"]|['"]$/g, '') : '';
         if (!apiKey) {
             throw new Error("API_KEY environment variable not set. Please check your project configuration.");
         }
-        ai = new GoogleGenAI({ apiKey: apiKey });
+        ai = new GoogleGenAI({ apiKey });
     }
     return ai;
 };
