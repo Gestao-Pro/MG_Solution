@@ -38,6 +38,20 @@ const profileToContext = (profile: UserProfile): string => {
 - Principal Desafio Atual: ${profile.mainChallenge}`;
 };
 
+const retryWithBackoff = async <T>(fn: () => Promise<T>, retries = 5, delay = 1000): Promise<T> => {
+    try {
+        return await fn();
+    } catch (error: any) {
+        if (retries > 0 && error.message && error.message.includes("429 Quota exceeded")) {
+            console.warn(`Rate limit hit, retrying in ${delay / 1000}s... (${retries} retries left)`);
+            await new Promise(res => setTimeout(res, delay));
+            return retryWithBackoff(fn, retries - 1, delay * 2);
+        } else {
+            throw error;
+        }
+    }
+};
+
 export const generateChatResponse = async (
     agent: Agent,
     profile: UserProfile,
@@ -51,14 +65,14 @@ export const generateChatResponse = async (
 
     if (agent.id === 'bi_analise') {
         const model = 'gemini-2.5-flash';
-        const result = await aiInstance.models.generateContent({
+        const result = await retryWithBackoff(async () => aiInstance.models.generateContent({
             model: model,
             contents: newMessage,
             config: {
                 systemInstruction: systemInstruction,
                 responseMimeType: 'application/json'
             },
-        });
+        }));
 
         const responseText = result.text.trim();
         try {
@@ -66,8 +80,13 @@ export const generateChatResponse = async (
             if (parsed.analysis && parsed.chartData) {
                 // It's a chart response!
                 const chartPrompt = `Crie um gráfico de negócios limpo e profissional do tipo '${parsed.chartData.type}' com o título '${parsed.chartData.title}'. Os dados são: Rótulos do eixo X: [${parsed.chartData.labels.join(', ')}]. Valores do eixo Y: [${parsed.chartData.values.join(', ')}]. Garanta que todos os textos e números sejam claros, legíveis e não se sobreponham.`;
-                const imageUrl = await generateVisualForReport(chartPrompt);
-                return { text: parsed.analysis, imageUrl };
+                try {
+                    const imageUrl = await generateVisualForReport(chartPrompt);
+                    return { text: parsed.analysis, imageUrl };
+                } catch (err) {
+                    console.warn('Falha ao gerar imagem via Imagen; retornando apenas texto.', err);
+                    return { text: parsed.analysis };
+                }
             }
         } catch (e) {
             // Not a chart, just regular text.
@@ -80,7 +99,7 @@ export const generateChatResponse = async (
         // If there's an image input, it's an EDIT task.
         if (image) {
              const model = 'gemini-2.5-flash-image';
-             const response = await aiInstance.models.generateContent({
+             const response = await retryWithBackoff(async () => aiInstance.models.generateContent({
                 model: model,
                 contents: {
                     parts: [
@@ -89,7 +108,7 @@ export const generateChatResponse = async (
                     ]
                 },
                 config: { responseModalities: [Modality.IMAGE] },
-            });
+            }));
             
             for (const part of response.candidates[0].content.parts) {
                 if (part.inlineData) {
@@ -102,20 +121,25 @@ export const generateChatResponse = async (
         // If there's NO image input, it's a CREATE task.
         else {
             const model = 'imagen-4.0-generate-001';
-            const response = await aiInstance.models.generateImages({
-                model: model,
-                prompt: newMessage,
-                config: {
-                    numberOfImages: 1,
-                    outputMimeType: 'image/png'
+            try {
+                const response = await retryWithBackoff(async () => aiInstance.models.generateImages({
+                    model: model,
+                    prompt: newMessage,
+                    config: {
+                        numberOfImages: 1,
+                        outputMimeType: 'image/png'
+                    }
+                }));
+                if (response.generatedImages && response.generatedImages.length > 0) {
+                     const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+                     const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+                     return { text: "Criei esta imagem com base na sua descrição.", imageUrl };
                 }
-            });
-            if (response.generatedImages && response.generatedImages.length > 0) {
-                 const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
-                 const imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-                 return { text: "Criei esta imagem com base na sua descrição.", imageUrl };
+                return { text: "Não consegui gerar a imagem. Tente descrever de outra forma." };
+            } catch (err) {
+                console.warn('Falha ao gerar imagem com Imagen (provável restrição de faturamento).', err);
+                return { text: "Não consegui gerar a imagem devido a restrições da API. Segue a orientação textual." };
             }
-            return { text: "Não consegui gerar a imagem. Tente descrever de outra forma." };
         }
     }
     
@@ -123,13 +147,13 @@ export const generateChatResponse = async (
     const model = 'gemini-2.5-flash';
 
     if (isDelegated) {
-        const response = await aiInstance.models.generateContent({
+        const response = await retryWithBackoff(async () => aiInstance.models.generateContent({
             model: model,
             contents: newMessage,
             config: {
                 systemInstruction: systemInstruction,
             },
-        });
+        }));
         return { text: response.text };
     }
 
@@ -140,7 +164,7 @@ export const generateChatResponse = async (
     contents.push({ role: 'user', parts: [{ text: newMessage }] });
 
     const chat = aiInstance.chats.create({ model, config: { systemInstruction }, history: contents.slice(0, -1) });
-    const response = await chat.sendMessage({ message: newMessage });
+    const response = await retryWithBackoff(async () => chat.sendMessage({ message: newMessage }));
 
     return { text: response.text };
 };
@@ -162,7 +186,7 @@ export const generateSuperBossAnalysis = async (profile: UserProfile, history: M
     contents.push({ role: 'user', parts: [{ text: newProblem }] });
 
     const chat = aiInstance.chats.create({ model, config: { systemInstruction }, history: contents.slice(0, -1) });
-    const result = await chat.sendMessage({ message: newProblem });
+    const result = await retryWithBackoff(async () => chat.sendMessage({ message: newProblem }));
 
     const responseText = result.text.trim();
 
@@ -189,7 +213,7 @@ export const generateSuperBossAnalysis = async (profile: UserProfile, history: M
     const parsed = tryParseJson(responseText);
     if (parsed) {
         const summary: string | undefined = parsed.summary;
-        const rawAgents: unknown = parsed.involved_agents ?? parsed.involvedAgents ?? parsed.agents;
+        const rawAgents: unknown = parsed.involved_agents ?? parsed.agents ?? parsed.involvedAgents;
 
         // Normalize agent identifiers: accept IDs or names; return mapped IDs
         const normalizeIdentifiers = (input: unknown): AgentId[] => {
@@ -225,7 +249,7 @@ export const generateSuperBossAnalysis = async (profile: UserProfile, history: M
 export const generateSpeech = async (text: string, voice: string = 'Zephyr'): Promise<string> => {
     const aiInstance = getAi();
     const model = "gemini-2.5-flash-preview-tts";
-    const response = await aiInstance.models.generateContent({
+    const response = await retryWithBackoff(async () => aiInstance.models.generateContent({
         model: model,
         contents: [{ parts: [{ text: text }] }],
         config: {
@@ -236,7 +260,7 @@ export const generateSpeech = async (text: string, voice: string = 'Zephyr'): Pr
                 },
             },
         },
-    });
+    }));
 
     const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!base64Audio) {
@@ -277,13 +301,13 @@ export const generatePdfReportContent = async (analysis: Analysis, userProfile: 
         }
     `;
 
-    const response = await aiInstance.models.generateContent({
+    const response = await retryWithBackoff(async () => aiInstance.models.generateContent({
         model: model,
         contents: prompt,
         config: {
             responseMimeType: 'application/json'
         },
-    });
+    }));
 
     const cleanJson = response.text.trim().replace(/^```json\n/, '').replace(/\n```$/, '');
     return JSON.parse(cleanJson);
@@ -294,14 +318,14 @@ export const generateVisualForReport = async (prompt: string): Promise<string> =
     const aiInstance = getAi();
     const model = 'imagen-4.0-generate-001';
     
-    const response = await aiInstance.models.generateImages({
+    const response = await retryWithBackoff(async () => aiInstance.models.generateImages({
         model: model,
         prompt: prompt,
         config: {
             numberOfImages: 1,
             outputMimeType: 'image/png'
         }
-    });
+    }));
 
     if (response.generatedImages && response.generatedImages.length > 0) {
         const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;

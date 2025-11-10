@@ -3,13 +3,14 @@ import React from 'react';
 import { AGENT_AREAS, SUPER_BOSS } from '../constants';
 import { AgentArea, AgentId } from '../types';
 import Avatar from './Avatar';
-import { Lightbulb, DollarSign, Mic, Users, Settings, LineChart, PenTool, Search } from 'lucide-react';
+import { Lightbulb, DollarSign, Mic, Users, Settings, LineChart, PenTool, Search, History } from 'lucide-react'; // Import History icon
 
 interface SidebarProps {
     onSelectArea: (area: AgentArea) => void;
     onSelectSuperBoss: () => void;
     activeArea: AgentArea | null;
     activeAgentId: AgentId | null;
+    onOpenHistory: () => void; // Add onOpenHistory prop
 }
 
 const areaIcons: Record<AgentArea, React.ComponentType<{ className?: string }>> = {
@@ -23,7 +24,7 @@ const areaIcons: Record<AgentArea, React.ComponentType<{ className?: string }>> 
     'BI': Search,
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ onSelectArea, onSelectSuperBoss, activeArea, activeAgentId }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onSelectArea, onSelectSuperBoss, activeArea, activeAgentId, onOpenHistory }) => {
     return (
         <aside className="w-full h-full bg-white dark:bg-gray-900 p-4 flex flex-col border-r border-gray-200 dark:border-gray-700">
             <div className="mb-8 px-2">
@@ -71,6 +72,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelectArea, onSelectSuperBoss, acti
                         </button>
                     );
                 })}
+            </div>
+            <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                    onClick={onOpenHistory} // Button to open history
+                    className="w-full flex items-center p-2 rounded-lg text-left transform transition-all duration-300 ease-in-out text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800 hover:-translate-y-1 hover:scale-105 hover:shadow-lg"
+                >
+                    <History className="w-5 h-5 mr-3 text-gray-500" />
+                    <span className="font-semibold text-sm">Histórico</span>
+                </button>
             </div>
         </aside>
     );

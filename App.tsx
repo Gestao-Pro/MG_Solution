@@ -1,106 +1,189 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { UserProfile, Agent, Message, Analysis, AgentId, AgentArea } from './types';
-import OnboardingModal from './components/OnboardingModal';
+import { v4 as uuidv4 } from 'uuid';
+import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatView from './components/ChatView';
 import AnalysisPanel from './components/AnalysisPanel';
-import Header from './components/Header';
+import ReportModal from './components/ReportModal';
+import OnboardingModal from './components/OnboardingModal';
+import HistoryPanel from './components/HistoryPanel';
 import AgentSelectionPanel from './components/AgentSelectionPanel';
-import { AGENTS, SUPER_BOSS, ALL_AGENTS_MAP } from './constants';
-import { generateChatResponse, generateSuperBossAnalysis } from './services/geminiService';
-
-const fileToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (error) => reject(error);
-    });
-
+import { Message, UserProfile, Agent, Analysis, ReportData, AnalysisSession, History, AgentId, AgentArea } from './types';
+import { ALL_AGENTS_MAP, AGENTS, SUPER_BOSS, ALL_AGENTS_LIST } from './constants';
+import { generateSuperBossAnalysis, generateChatResponse } from './services/geminiService';
+import { fileToBase64 } from './utils/audioUtils';
 
 const App: React.FC = () => {
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-    const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-    
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-        return (localStorage.getItem('gestaoProTheme') as 'light' | 'dark') || 'dark';
+        return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
     });
-    const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-    
-    const [activeArea, setActiveArea] = useState<AgentArea>('Estratégia');
+    const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+        const savedProfile = localStorage.getItem('userProfile');
+        return savedProfile ? JSON.parse(savedProfile) : { userName: 'Usuário', userRole: 'Analista' };
+    });
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [currentAgent, setCurrentAgent] = useState<Agent>(ALL_AGENTS_LIST[0]);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [currentAnalysis, setCurrentAnalysis] = useState<Analysis | null>(null);
+    const [reportData, setReportData] = useState<ReportData | null>(null);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [userProblem, setUserProblem] = useState<string>('');
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
+        return localStorage.getItem('hasOnboarded') === 'true';
+    });
+    const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
+    const [history, setHistory] = useState<History>(() => {
+        const savedHistory = localStorage.getItem('analysisHistory');
+        return savedHistory ? JSON.parse(savedHistory) : { sessions: [] };
+    });
     const [activeAgentId, setActiveAgentId] = useState<AgentId | null>(null);
-    const [view, setView] = useState<'agent-selection' | 'chat' | 'analysis'>('agent-selection');
-    
-    const [chats, setChats] = useState<Record<AgentId, Message[]>>(() => {
-        const initialChats: Record<AgentId, Message[]> = {};
-        ALL_AGENTS_MAP.forEach(agent => {
-            initialChats[agent.id] = [{
-                id: `${agent.id}-initial`,
-                text: `Olá! Eu sou ${agent.name}, ${agent.specialty}. Como posso te ajudar hoje?`,
-                sender: 'agent',
-                agent: agent,
-            }];
-        });
-        return initialChats;
-    });
+    const [activeArea, setActiveArea] = useState<AgentArea>('Estratégia');
     const [loading, setLoading] = useState(false);
-    const [analysis, setAnalysis] = useState<Analysis | null>(null);
+    const [chats, setChats] = useState<{ [key: AgentId]: Message[] }>({});
+    const [view, setView] = useState<'agent-selection' | 'chat' | 'analysis' | 'history'>('agent-selection');
+    const [isOnboardingOpen, setIsOnboardingOpen] = useState(!hasOnboarded);
 
     useEffect(() => {
-        const root = window.document.documentElement;
-        if (theme === 'dark') {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
-        localStorage.setItem('gestaoProTheme', theme);
+        localStorage.setItem('theme', theme);
+        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.add(theme);
     }, [theme]);
 
     useEffect(() => {
-        try {
-            const savedProfile = localStorage.getItem('gestaoProUserProfile');
-            if (savedProfile) {
-                setUserProfile(JSON.parse(savedProfile));
-            } else {
-                setIsOnboardingOpen(true);
-            }
-        } catch (error) {
-            console.error("Failed to parse user profile from localStorage", error);
-            setIsOnboardingOpen(true);
+        if (hasOnboarded && !activeAgentId && view !== 'agent-selection') {
+            setView('agent-selection');
         }
-    }, []);
+    }, [hasOnboarded, activeAgentId, view]);
+
+    useEffect(() => {
+        if (userProfile.userName && userProfile.companyName && userProfile.companyField && userProfile.userRole && userProfile.companySize && userProfile.companyStage && userProfile.mainProduct && userProfile.targetAudience && userProfile.mainChallenge) {
+            setIsOnboardingOpen(false);
+        }
+    }, [userProfile]);
+
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    };
+
+    const toggleTheme = () => {
+        setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+    };
 
     const handleSaveProfile = (profile: UserProfile) => {
         setUserProfile(profile);
-        localStorage.setItem('gestaoProUserProfile', JSON.stringify(profile));
-        setIsOnboardingOpen(false);
+        localStorage.setItem('userProfile', JSON.stringify(profile));
+        setIsProfileModalOpen(false);
+        if (!hasOnboarded) {
+            setHasOnboarded(true);
+            localStorage.setItem('hasOnboarded', 'true');
+        }
     };
 
     const handleEditProfile = () => {
-        setIsOnboardingOpen(true);
+        setIsProfileModalOpen(true);
     };
 
-    const handleSelectAgent = (agentId: AgentId) => {
-        setActiveAgentId(agentId);
-        setView('chat');
+    const handleFinishOnboarding = () => {
+        setHasOnboarded(true);
+        localStorage.setItem('hasOnboarded', 'true');
     };
-    
+
+    const handleOpenHistory = () => {
+        setIsHistoryPanelOpen(true);
+        setView('history');
+    };
+
+    const handleCloseHistory = () => {
+        setIsHistoryPanelOpen(false);
+        setView(activeAgentId ? 'chat' : 'agent-selection');
+    };
+
+    const saveCurrentSession = useCallback((problemSummary: string) => {
+        const newSession: AnalysisSession = {
+            id: uuidv4(),
+            timestamp: new Date().toISOString(),
+            userProblem: problemSummary,
+            messages: messages,
+            currentAnalysis: currentAnalysis,
+            reportData: reportData,
+        };
+
+        setHistory(prevHistory => {
+            const updatedHistory = { ...prevHistory, sessions: [newSession, ...prevHistory.sessions] };
+            localStorage.setItem('analysisHistory', JSON.stringify(updatedHistory));
+            return updatedHistory;
+        });
+    }, [messages, currentAnalysis, reportData]);
+
+    const loadSession = useCallback((sessionId: string) => {
+        const sessionToLoad = history.sessions.find(session => session.id === sessionId);
+        if (sessionToLoad) {
+            setMessages(sessionToLoad.messages);
+            setCurrentAnalysis(sessionToLoad.currentAnalysis);
+            setReportData(sessionToLoad.reportData);
+            setUserProblem(sessionToLoad.userProblem);
+            setChats(prev => ({ ...prev, [SUPER_BOSS.id]: sessionToLoad.messages })); // Assuming messages are for SUPER_BOSS
+            setActiveAgentId(SUPER_BOSS.id);
+            setView('chat');
+            setIsHistoryPanelOpen(false); // Close history panel after loading
+        }
+    }, [history.sessions, setMessages, setCurrentAnalysis, setReportData, setUserProblem, setChats]);
+
+    const deleteSession = useCallback((sessionId: string) => {
+        setHistory(prevHistory => {
+            const updatedHistory = { ...prevHistory, sessions: prevHistory.sessions.filter(session => session.id !== sessionId) };
+            localStorage.setItem('analysisHistory', JSON.stringify(updatedHistory));
+            return updatedHistory;
+        });
+    }, []);
+
     const handleSelectArea = (area: AgentArea) => {
         setActiveArea(area);
         setActiveAgentId(null);
         setView('agent-selection');
     };
 
+    const handleSelectAgent = (agentId: AgentId) => {
+        const agent = ALL_AGENTS_MAP.get(agentId);
+        if (agent) {
+            setActiveAgentId(agentId);
+            if (!chats[agentId]) {
+                setChats(prev => ({
+                    ...prev,
+                    [agentId]: [{
+                        id: `${agent.id}-initial`,
+                        text: `Olá! Eu sou ${agent.name}, ${agent.specialty}. Como posso te ajudar hoje?`,
+                        sender: 'agent',
+                        agent: agent,
+                    }]
+                }));
+            }
+            setView('chat');
+        }
+    };
+
     const handleSelectSuperBoss = () => {
         setActiveAgentId(SUPER_BOSS.id);
+        if (!chats[SUPER_BOSS.id]) {
+            setChats(prev => ({
+                ...prev,
+                [SUPER_BOSS.id]: [{
+                    id: `${SUPER_BOSS.id}-initial`,
+                    text: `Olá! Eu sou ${SUPER_BOSS.name}, ${SUPER_BOSS.specialty}. Como posso te ajudar hoje?`,
+                    sender: 'agent',
+                    agent: SUPER_BOSS,
+                }]
+            }));
+        }
         setView('chat');
     };
 
     const handleBackToSelection = () => {
-        setView('agent-selection');
-        setAnalysis(null);
         setActiveAgentId(null);
+        setView('agent-selection');
     };
 
     const typeMessage = (agentId: AgentId, message: Message, onComplete?: () => void) => {
@@ -197,7 +280,7 @@ const App: React.FC = () => {
                     typeMessage(currentAgentId, bossMessage, async () => {
                         const involvedAgents = involvedAgentIds.map(id => ALL_AGENTS_MAP.get(id)).filter((a): a is Agent => !!a);
                         if (involvedAgents.length === 0) {
-                             setAnalysis({
+                             setCurrentAnalysis({
                                 problem: summary,
                                 solutions: [{
                                     agent: SUPER_BOSS,
@@ -208,13 +291,23 @@ const App: React.FC = () => {
                             return;
                         }
 
-                        const agentSolutions = await Promise.all(involvedAgents.map(async agent => {
+                        const results = await Promise.allSettled(involvedAgents.map(async agent => {
                             const specialistPrompt = `O SuperBoss já centralizou a análise do problema do usuário, que é: "${summary}". Sua tarefa é focar EXCLUSIVAMENTE em sua especialidade para fornecer uma solução direta e concisa. NÃO REPITA a análise do problema. Vá direto ao ponto com sua solução.`;
-                            const solution = await generateChatResponse(agent, userProfile, [], specialistPrompt, undefined, true);
-                            return { agent, solution: solution.text };
+                            try {
+                                const solution = await generateChatResponse(agent, userProfile, [], specialistPrompt, undefined, true);
+                                return { agent, solution: solution.text };
+                            } catch (err) {
+                                console.error(`Falha ao obter solução de ${agent.name}:`, err);
+                                // Fallback textual solution to avoid blocking the entire analysis
+                                return { agent, solution: `Tive um problema ao gerar um visual ou resposta completa. Como especialista em ${agent.specialty}, recomendo focar em um plano de ação direto: 1) diagnóstico breve; 2) medidas principais; 3) KPI de acompanhamento.` };
+                            }
                         }));
-    
-                        setAnalysis({
+
+                        const agentSolutions = results
+                            .filter(r => r.status === 'fulfilled')
+                            .map(r => (r as PromiseFulfilledResult<{ agent: Agent; solution: string }>).value);
+
+                        setCurrentAnalysis({
                             problem: summary,
                             solutions: agentSolutions
                         });
@@ -254,7 +347,7 @@ const App: React.FC = () => {
             };
             setChats(prev => ({ ...prev, [currentAgentId]: [...prev[currentAgentId], errorMessage] }));
         }
-    }, [userProfile, activeAgentId, chats]);
+    }, [userProfile, activeAgentId, chats, setCurrentAnalysis, setView]);
     
     if (isOnboardingOpen) {
         return <OnboardingModal onSave={handleSaveProfile} initialProfile={userProfile ?? undefined} />;
@@ -268,23 +361,25 @@ const App: React.FC = () => {
     
     return (
         <div className="h-screen w-screen flex font-sans">
-            <div className={`${isSidebarVisible ? 'w-full md:w-64' : 'w-0'} transition-all duration-300`}>
-                {isSidebarVisible && 
+            <div className={`${isSidebarOpen ? 'w-full md:w-64' : 'w-0'} transition-all duration-300`}>
+                {isSidebarOpen && 
                     <Sidebar 
                         onSelectArea={handleSelectArea} 
                         onSelectSuperBoss={handleSelectSuperBoss} 
                         activeArea={activeArea}
                         activeAgentId={activeAgentId}
+                        onOpenHistory={handleOpenHistory} // Pass onOpenHistory to Sidebar
                     />
                 }
             </div>
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <Header 
-                    toggleSidebar={() => setIsSidebarVisible(!isSidebarVisible)}
+                    toggleSidebar={toggleSidebar}
                     theme={theme}
-                    toggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+                    toggleTheme={toggleTheme}
                     userProfile={userProfile}
                     onEditProfile={handleEditProfile}
+                    onSaveSession={saveCurrentSession} // Pass saveCurrentSession to Header
                 />
                 <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-800">
                     {view === 'agent-selection' && (
@@ -304,11 +399,19 @@ const App: React.FC = () => {
                             onClearConversation={() => handleClearConversation(activeAgent.id)}
                          />
                     )}
-                    {view === 'analysis' && analysis && userProfile && (
+                    {view === 'analysis' && currentAnalysis && userProfile && (
                         <AnalysisPanel 
-                            analysis={analysis} 
+                            analysis={currentAnalysis} 
                             onBack={handleBackToSelection} 
                             userProfile={userProfile} 
+                        />
+                    )}
+                    {view === 'history' && (
+                        <HistoryPanel 
+                            onClose={handleCloseHistory} 
+                            history={history.sessions} 
+                            onLoadSession={loadSession} 
+                            onDeleteSession={deleteSession} 
                         />
                     )}
                 </main>

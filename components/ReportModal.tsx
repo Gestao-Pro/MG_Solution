@@ -34,6 +34,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfil
     const [status, setStatus] = useState('Iniciando a geração do relatório...');
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [downloading, setDownloading] = useState(false);
 
     useEffect(() => {
         const generateReport = async () => {
@@ -84,61 +85,300 @@ const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfil
     }, [analysis, userProfile]);
     
     const handleDownloadPdf = async () => {
-        const coverElement = document.getElementById('pdf-cover');
-        const bodyElement = document.getElementById('pdf-body');
-        if (!coverElement || !bodyElement) {
-            console.error("PDF content elements not found.");
-            return;
-        }
-
-        const { jsPDF } = jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const margin = 15;
-
-        // 1. Render Cover Page
-        await pdf.html(coverElement, {
-            width: pdfWidth,
-            windowWidth: 794, // A4 width in pixels at 96 DPI
-        });
-
-        // 2. Add a new page for the body content
-        pdf.addPage();
-        
-        // 3. Render Body Content with auto-paging
-        await pdf.html(bodyElement, {
-            autoPaging: 'text',
-            y: margin,
-            x: margin,
-            width: pdfWidth - (margin * 2),
-            windowWidth: 794 - (margin * 2),
-        });
-
-        // 4. Add Headers and Footers to body pages
-        const totalPages = pdf.internal.getNumberOfPages();
-        for (let i = 2; i <= totalPages; i++) {
-            pdf.setPage(i);
+        try {
+            setDownloading(true);
+            setStatus('Gerando PDF...');
+    
+            const jspdfGlobal: any = (window as any).jspdf || (typeof jspdf !== 'undefined' ? jspdf : undefined);
+            if (!jspdfGlobal || !jspdfGlobal.jsPDF) {
+                console.error('jsPDF global not available.');
+                setError('Biblioteca jsPDF não carregada. Verifique sua conexão e recarregue a página.');
+                return;
+            }
+    
+            const { jsPDF } = jspdfGlobal;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const margin = 20; // Margem aumentada para 20mm
+            const contentWidth = pdfWidth - margin * 2;
+            let currentY = 30; // Posição inicial Y ajustada
+    
+            // Array para armazenar o sumário
+            const tableOfContents: { title: string, page: number }[] = [];
+    
+            // Definições de espaçamento
+            const spaceAfterTitle = 15;
+            const spaceAfterSubtitle = 8;
+            const spaceAfterParagraph = 6;
+            const spaceBeforeSection = 10;
+    
+            // Definições de Tipografia e Cores
+            const FONT_TITLE = 24;
+            const FONT_SECTION = 18;
+            const FONT_SUBSECTION = 14;
+            const FONT_BODY = 12;
+            const FONT_VISUAL_TITLE = 10;
+            const FONT_FOOTER = 8;
+    
+            const COLOR_PRIMARY = '#2c3e50';
+            const COLOR_SECONDARY = '#3498db';
+            const COLOR_BODY = '#34495e';
+            const COLOR_MUTED = '#95a5a6';
+            const COLOR_NEUTRAL = '#bdc3c7';
+    
+            const renderStyledText = (text: string, initialX: number, maxWidth: number) => {
+                const lineHeight = 5;
+                const lines = pdf.splitTextToSize(text, maxWidth);
             
-            // Header
-            pdf.setFontSize(9);
-            pdf.setTextColor('#003366'); // Dark Blue
-            pdf.text('GestãoPro | Relatório de Análise Estratégica', margin, 10);
-            pdf.setDrawColor('#aaccff'); // Light Blue
-            pdf.line(margin, 12, pdfWidth - margin, 12);
-
-            // Footer
-            pdf.setFontSize(8);
-            pdf.setTextColor(150); // Gray
-            const pageStr = `Página ${i - 1} de ${totalPages - 1}`;
-            pdf.text(pageStr, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
-            pdf.text(`Confidencial © GestãoPro`, margin, pdfHeight - 10);
+                for (const line of lines) {
+                    if (currentY + lineHeight > pdfHeight - 20) {
+                        pdf.addPage();
+                        currentY = margin; // Reset Y on new page
+                    }
+            
+                    let currentX = initialX;
+                    // Regex to split by **bold** or *italic* while keeping the delimiters for identification
+                    const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(p => p);
+            
+                    for (const part of parts) {
+                        let style = 'normal';
+                        let content = part;
+            
+                        if (part.startsWith('**') && part.endsWith('**')) {
+                            style = 'bold';
+                            content = part.substring(2, part.length - 2);
+                        } else if (part.startsWith('*') && part.endsWith('*')) {
+                            style = 'italic';
+                            content = part.substring(1, part.length - 1);
+                        }
+            
+                        // Set the font style for this part
+                        pdf.setFont('helvetica', style);
+                        
+                        // Render the part and update the X position
+                        pdf.text(content, currentX, currentY);
+                        currentX += pdf.getStringUnitWidth(content) * pdf.getFontSize() / pdf.internal.scaleFactor;
+                    }
+                    currentY += lineHeight; // Move to the next line
+                }
+            };
+    
+            // --- CAPA PROFISSIONAL ---
+            // Fundo da capa
+            pdf.setFillColor(COLOR_PRIMARY); // Azul escuro
+            pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+    
+            // Título Principal
+            pdf.setFontSize(32);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor('#FFFFFF'); // Branco
+            pdf.text('Relatório de Análise Estratégica', pdfWidth / 2, 80, { align: 'center' });
+    
+            // Subtítulo
+            pdf.setFontSize(18);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('Projeto GestãoPro', pdfWidth / 2, 100, { align: 'center' });
+    
+            // Logo da Empresa (Placeholder)
+            // pdf.addImage(userProfile.companyLogo, 'PNG', pdfWidth / 2 - 25, 130, 50, 50);
+    
+            // Informações do Cliente e Data
+            pdf.setFontSize(14);
+            pdf.setTextColor('#FFFFFF');
+            pdf.text(userProfile.companyName, pdfWidth / 2, 180, { align: 'center' });
+            const currentDate = new Date().toLocaleDateString('pt-BR');
+            pdf.text(currentDate, pdfWidth / 2, 190, { align: 'center' });
+    
+            // --- FIM DA CAPA ---
+    
+            // --- PÁGINA DO SUMÁRIO (Placeholder) ---
+            pdf.addPage();
+            const tocPage = pdf.internal.getNumberOfPages(); // Página onde o sumário será inserido
+            pdf.setFontSize(FONT_SECTION);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(COLOR_PRIMARY);
+            pdf.text('Sumário', margin, currentY);
+            currentY += spaceAfterTitle;
+    
+            // Adicionar nova página para o conteúdo
+            pdf.addPage();
+            currentY = margin + 10; // Reset Y para a nova página
+    
+            // --- RESUMO EXECUTIVO ---
+            let sectionCounter = 1;
+            tableOfContents.push({ title: `${sectionCounter}. Resumo Executivo`, page: pdf.internal.getNumberOfPages() });
+            pdf.setFontSize(FONT_SECTION);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(COLOR_PRIMARY);
+            pdf.text(`${sectionCounter}. Resumo Executivo`, margin, currentY);
+            currentY += spaceAfterTitle;
+    
+            pdf.setFontSize(FONT_BODY);
+            pdf.setTextColor(COLOR_BODY);
+            renderStyledText(reportData.rewrittenProblem, margin, contentWidth);
+            currentY += spaceAfterParagraph;
+    
+    
+            // --- RECOMENDAÇÕES DOS ESPECIALISTAS ---
+            currentY += spaceBeforeSection;
+            sectionCounter++;
+            let subsectionCounter = 0;
+            tableOfContents.push({ title: `${sectionCounter}. Recomendações dos Especialistas`, page: pdf.internal.getNumberOfPages() });
+            pdf.setFontSize(FONT_SECTION);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(COLOR_PRIMARY);
+            pdf.text(`${sectionCounter}. Recomendações dos Especialistas`, margin, currentY);
+            currentY += spaceAfterTitle;
+    
+            // Loop pelas soluções para renderizar no PDF
+            for (const sol of reportData.rewrittenSolutions) {
+                // Verificar espaço para nova recomendação
+                if (currentY + spaceBeforeSection > pdfHeight - 20) {
+                    pdf.addPage();
+                    currentY = 30;
+                }
+                currentY += spaceBeforeSection;
+    
+                // Nome do agente (Subseção)
+                subsectionCounter++;
+                pdf.setFontSize(FONT_SUBSECTION);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(COLOR_SECONDARY);
+                pdf.text(`${sectionCounter}.${subsectionCounter}. ${sol.agent.name}:`, margin, currentY);
+                currentY += spaceAfterSubtitle;
+    
+                // Conteúdo da recomendação
+                pdf.setFontSize(FONT_BODY);
+                pdf.setTextColor(COLOR_BODY);
+                renderStyledText(sol.rewrittenSolution, margin, contentWidth);
+                currentY += spaceAfterParagraph;
+    
+                // Adicionar visual (se existir)
+                if (sol.visualUrl) {
+                    try {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.src = sol.visualUrl;
+                        await new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = reject;
+                        });
+    
+                        // Calcular tamanho da imagem para caber no conteúdo
+                        const maxImgHeight = pdfHeight * 0.4; // Max 40% of page height
+                        let imgWidth = contentWidth;
+                        let imgHeight = (img.height / img.width) * imgWidth;
+    
+                        if (imgHeight > maxImgHeight) {
+                            imgHeight = maxImgHeight;
+                            imgWidth = (img.width / img.height) * imgHeight; // Recalcular largura para manter a proporção
+                            if (imgWidth > contentWidth) { // Garantir que a largura não exceda o contentWidth
+                                imgWidth = contentWidth;
+                                imgHeight = (img.height / img.width) * imgWidth;
+                            }
+                        }
+    
+                        if (currentY + imgHeight > pdfHeight - 20) {
+                            pdf.addPage();
+                            currentY = margin;
+                        }
+                        pdf.addImage(img, 'PNG', margin + (contentWidth - imgWidth) / 2, currentY, imgWidth, imgHeight); // Centralizar imagem
+                        currentY += imgHeight + 5;
+    
+                        // Título do visual
+                        if (sol.visualTitle) {
+                            pdf.setFontSize(FONT_VISUAL_TITLE);
+                            pdf.setTextColor(COLOR_MUTED);
+                            pdf.text(sol.visualTitle, pdfWidth / 2, currentY, { align: 'center' });
+                            currentY += 5;
+                        }
+                    } catch (e) {
+                        console.error(`Falha ao adicionar visual para ${sol.agent.name}:`, e);
+                    }
+                }
+    
+                currentY += spaceAfterParagraph;
+            }
+    
+            // --- CONCLUSÃO E PRÓXIMOS PASSOS ---
+            currentY += spaceBeforeSection;
+            sectionCounter++;
+            tableOfContents.push({ title: `${sectionCounter}. Conclusão e Próximos Passos`, page: pdf.internal.getNumberOfPages() });
+            pdf.setFontSize(FONT_SECTION);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(COLOR_PRIMARY);
+            pdf.text(`${sectionCounter}. Conclusão e Próximos Passos`, margin, currentY);
+            currentY += spaceAfterTitle;
+    
+            pdf.setFontSize(FONT_BODY);
+            pdf.setTextColor(COLOR_BODY);
+            const conclusionText = `Este relatório apresentou uma análise estratégica detalhada, destacando os principais desafios e oportunidades para a ${userProfile.companyName}. As recomendações fornecidas pelos nossos especialistas oferecem um caminho claro para otimizar operações, fortalecer o posicionamento de mercado e impulsionar o crescimento sustentável.\n\nSugerimos os seguintes próximos passos:\n*1. Reunião de Alinhamento:* Agendar uma reunião com as partes interessadas para discutir os insights deste relatório e priorizar as ações recomendadas.\n*2. Plano de Ação Detalhado:* Desenvolver um plano de ação com cronogramas, responsáveis e métricas de sucesso (KPIs) para cada iniciativa.\n*3. Projetos-Piloto:* Iniciar com projetos-piloto para as recomendações de maior impacto e menor complexidade, permitindo uma validação rápida e ajustes ágeis.\n*4. Monitoramento Contínuo:* Estabelecer um ciclo de revisão trimestral para acompanhar o progresso das iniciativas e o impacto nos resultados da empresa.`;
+            renderStyledText(conclusionText, margin, contentWidth);
+            currentY += spaceAfterParagraph;
+    
+            // --- RENDERIZAR O SUMÁRIO DE VERDADE ---
+            pdf.setPage(tocPage);
+            currentY = 30 + spaceAfterTitle; // Posição Y inicial da página do sumário
+            pdf.setFontSize(FONT_BODY);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(COLOR_BODY);
+    
+            for (const item of tableOfContents) {
+                if (currentY > pdfHeight - 20) { // Evitar que o sumário ultrapasse a página
+                    // Idealmente, adicionar nova página de sumário se for muito longo
+                    break;
+                }
+                const title = item.title;
+                const pageNum = item.page.toString();
+                const titleWidth = pdf.getStringUnitWidth(title) * pdf.getFontSize() / pdf.internal.scaleFactor;
+                const pageNumWidth = pdf.getStringUnitWidth(pageNum) * pdf.getFontSize() / pdf.internal.scaleFactor;
+                const dotsWidth = contentWidth - titleWidth - pageNumWidth;
+                const dots = '.'.repeat(Math.max(0, Math.floor(dotsWidth / (pdf.getStringUnitWidth('.') * pdf.getFontSize() / pdf.internal.scaleFactor))));
+    
+                pdf.text(title, margin, currentY);
+                pdf.text(dots, margin + titleWidth, currentY);
+                pdf.text(pageNum, pdfWidth - margin, currentY, { align: 'right' });
+                currentY += 8; // Espaçamento entre itens do sumário
+            }
+    
+            // 5. Adicionar Cabeçalhos e Rodapés em todas as páginas
+            const totalPages = pdf.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i);
+    
+                // Cabeçalho simplificado (apenas a linha)
+                pdf.setDrawColor('#aaccff');
+                pdf.line(margin, 12, pdfWidth - margin, 12);
+    
+                // Rodapé simplificado
+                pdf.setFontSize(FONT_FOOTER);
+                pdf.setTextColor(COLOR_NEUTRAL); // Cinza neutro
+                const pageNumText = `Página ${i} de ${totalPages}`;
+                const confidentialityText = 'Confidencial © GestãoPro';
+                pdf.text(confidentialityText, margin, pdfHeight - 10);
+                pdf.text(pageNumText, pdfWidth - margin, pdfHeight - 10, { align: 'right' });
+    
+                // Marca d'água corrigida
+                pdf.saveGraphicsState();
+                pdf.setGState(new jspdfGlobal.GState({ opacity: 0.08 }));
+                pdf.setFontSize(45); // Tamanho de fonte reduzido
+                pdf.setTextColor('#C0C0C0');
+                pdf.text('CONFIDENCIAL', pdfWidth / 2, pdfHeight / 2, { align: 'center', angle: 45 });
+                pdf.restoreGraphicsState();
+            }
+    
+            // 6. Salvar o PDF
+            pdf.save(`relatorio-gestaopro-${userProfile.companyName.toLowerCase().replace(/\s/g, '-')}.pdf`);
+            setStatus('Relatório pronto!');
+        } catch (e) {
+            console.error('Falha ao gerar PDF:', e);
+            setError('Falha ao gerar o PDF. Tente novamente e, se persistir, recarregue a página.');
+        } finally {
+            setDownloading(false);
         }
-
-        // 5. Save the PDF
-        pdf.save(`relatorio-gestaopro-${userProfile.companyName.toLowerCase().replace(/\s/g, '-')}.pdf`);
     };
-
+    
     return (
         <>
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -154,7 +394,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfil
                                 onClick={handleDownloadPdf} 
                                 tooltip="Baixar Relatório (PDF)" 
                                 className="bg-green-600 hover:bg-green-700 text-white" 
-                                disabled={loading || !!error}
+                                disabled={loading || !!error || downloading}
                             />
                             <IconButton icon={X} onClick={onClose} tooltip="Fechar" className="bg-red-600 hover:bg-red-700 text-white" />
                         </div>
@@ -196,14 +436,15 @@ const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfil
             </div>
             
             {/* Hidden element for PDF rendering. It must be in the DOM to be rendered. */}
-            {!loading && reportData && (
+            {/* ReportPDFLayout is no longer needed for PDF generation as content is directly added to jsPDF */}
+            {/*
                  <div style={{ position: 'absolute', left: '-9999px', top: '0px' }}>
                      <ReportPDFLayout 
                          reportData={reportData}
                          userProfile={userProfile}
                      />
                  </div>
-            )}
+            */}
         </>
     );
 };

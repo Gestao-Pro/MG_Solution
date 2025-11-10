@@ -40,3 +40,33 @@ export interface Analysis {
     problem: string;
     solutions: { agent: Agent; solution: string }[];
 }
+
+export interface ReportData {
+    rewrittenProblem: string;
+    rewrittenSolutions: RewrittenSolution[];
+}
+
+// --- Tipos para o Histórico de Análises ---
+
+export interface AnalysisSession {
+    id: string;
+    timestamp: string;
+    userProblem: string;
+    messages: Message[];
+    currentAnalysis: Analysis | null;
+    reportData: ReportData | null;
+}
+
+export interface History {
+    sessions: AnalysisSession[];
+}
+
+export type AgentId = string;
+export type AgentArea = 'Estratégia' | 'Marketing' | 'Vendas' | 'Produto' | 'Financeiro' | 'Operações' | 'RH' | 'Tecnologia' | 'Jurídico' | 'Superboss';
+
+export interface RewrittenSolution {
+    id: string;
+    title: string;
+    description: string;
+    status: 'pending' | 'in_progress' | 'completed';
+}

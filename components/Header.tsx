@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Menu, Sun, Moon, PenTool } from 'lucide-react';
+import { Menu, Sun, Moon, PenTool, Save } from 'lucide-react'; // Import Save icon
 import IconButton from './IconButton';
 import { UserProfile } from '../types';
 
@@ -10,9 +10,10 @@ interface HeaderProps {
     toggleTheme: () => void;
     userProfile: UserProfile;
     onEditProfile: () => void;
+    onSaveSession: (problemSummary: string) => void; // Add onSaveSession prop
 }
 
-const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, userProfile, onEditProfile }) => {
+const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, userProfile, onEditProfile, onSaveSession }) => {
     const userInitial = userProfile.userName ? userProfile.userName.charAt(0).toUpperCase() : '?';
 
     return (
@@ -37,6 +38,12 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, user
                     icon={PenTool}
                     onClick={onEditProfile}
                     tooltip="Editar Perfil"
+                    className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                />
+                <IconButton 
+                    icon={Save}
+                    onClick={() => onSaveSession("Sessão Salva Manualmente")} // Call onSaveSession with a default problem summary
+                    tooltip="Salvar Sessão"
                     className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                 />
                 <IconButton 

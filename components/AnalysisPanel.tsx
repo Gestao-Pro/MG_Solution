@@ -63,19 +63,21 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({ analysis, onBack, userPro
                                 const isExpanded = !!expandedSolutions[index];
                                 return (
                                     <div key={index} className="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300">
-                                        <button
-                                            onClick={() => toggleSolution(index)}
-                                            className="w-full flex items-center p-4 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                                            aria-expanded={isExpanded}
-                                            aria-controls={`solution-${index}`}
-                                        >
-                                            <div className="w-10 h-10 mr-4 flex-shrink-0">
-                                                <Avatar agent={agent} />
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="font-bold">{agent.name}</p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">{agent.specialty}</p>
-                                            </div>
+                                        <div className="w-full flex items-center p-4 text-left">
+                                            <button
+                                                onClick={() => toggleSolution(index)}
+                                                className="flex-1 flex items-center focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                                                aria-expanded={isExpanded}
+                                                aria-controls={`solution-${index}`}
+                                            >
+                                                <div className="w-10 h-10 mr-4 flex-shrink-0">
+                                                    <Avatar agent={agent} />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="font-bold">{agent.name}</p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">{agent.specialty}</p>
+                                                </div>
+                                            </button>
                                             <div className="flex items-center space-x-2">
                                                 {solutionAudios[index] ? (
                                                     <div className="w-48" onClick={(e) => e.stopPropagation()}>
@@ -95,14 +97,14 @@ const AnalysisPanel: React.FC<AnalysisPanelProps> = ({ analysis, onBack, userPro
                                                 )}
                                                 <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                                             </div>
-                                        </button>
+                                        </div>
                                         <div
                                             id={`solution-${index}`}
                                             className={`transition-all duration-500 ease-in-out grid ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
                                         >
                                             <div className="overflow-hidden">
                                                 <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none prose-p:text-gray-600 dark:prose-p:text-gray-300 p-4 pt-0">
-                                                    {solution.split('\n').filter(p => p.trim()).map((paragraph, i) => <p key={i}>{paragraph}</p>)}
+                                                    {(typeof solution === 'string' ? solution : '').split('\n').filter(p => p.trim()).map((paragraph, i) => <p key={i}>{paragraph}</p>)}
                                                 </div>
                                             </div>
                                         </div>
