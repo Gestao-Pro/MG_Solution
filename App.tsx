@@ -349,8 +349,8 @@ const App: React.FC = () => {
         }
     }, [userProfile, activeAgentId, chats, setCurrentAnalysis, setView]);
     
-    if (isOnboardingOpen) {
-        return <OnboardingModal onSave={handleSaveProfile} initialProfile={userProfile ?? undefined} />;
+    if (isOnboardingOpen || isProfileModalOpen) {
+        return <OnboardingModal onSave={handleSaveProfile} initialProfile={userProfile ?? undefined} onClose={() => setIsProfileModalOpen(false)} />;
     }
 
     if (!userProfile) {
