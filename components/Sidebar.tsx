@@ -20,8 +20,6 @@ const areaIcons: Record<AgentArea, React.ComponentType<{ className?: string }>> 
     'Pessoas': Users,
     'Processos': Settings,
     'Finanças': LineChart,
-    'Criativo': PenTool,
-    'BI': Search,
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ onSelectArea, onSelectSuperBoss, activeArea, activeAgentId, onOpenHistory }) => {

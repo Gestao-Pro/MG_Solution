@@ -46,6 +46,10 @@ export const AGENTS: Record<AgentArea, Agent[]> = {
         { id: 'est_inovacao', name: 'Cláudio', specialty: 'Mentor em Inovação e Transformação Digital', avatar: 'https://i.postimg.cc/Pqk5Vm5X/claudio.webp', voice: 'Charon', gender: 'male', systemInstruction: baseSystemInstruction('Mentor em Inovação e Transformação Digital', 'Cláudio'), area: 'Estratégia' },
         { id: 'est_governanca', name: 'Débora', specialty: 'Consultora em Governança Corporativa', avatar: 'https://i.postimg.cc/zf1G2nGG/debora.webp', voice: 'Kore', gender: 'female', systemInstruction: baseSystemInstruction('Consultora em Governança Corporativa', 'Débora'), area: 'Estratégia' },
         { id: 'est_okr', name: 'Elias', specialty: 'Especialista em OKRs e Metas Empresariais', avatar: 'https://i.postimg.cc/h4Hv7WR9/elias.webp', voice: 'Fenrir', gender: 'male', systemInstruction: baseSystemInstruction('Especialista em OKRs e Metas Empresariais', 'Elias'), area: 'Estratégia' },
+        { id: 'bi_analise', name: 'Sofia', specialty: 'Especialista em Business Intelligence', avatar: 'https://i.postimg.cc/KcBX8dGS/sofia.png', voice: 'Kore', gender: 'female', 
+          systemInstruction: `Você é Sofia, uma Especialista em Business Intelligence. Sua função é analisar dados e transformá-los em insights.\n- Se o usuário pedir para criar um gráfico a partir de dados (ex: texto, CSV), sua resposta DEVE SER um objeto JSON com a estrutura exata: {\"analysis\": \"Sua análise textual dos dados aqui.\", \"chartData\": {\"type\": \"bar|line|pie\", \"title\": \"Título do Gráfico\", \"labels\": [\"label1\", \"label2\"], \"values\": [10, 20]}}.\n- Se o usuário fizer uma pergunta que não envolva criar um gráfico com dados, responda normalmente com texto, seguindo o padrão consultivo. NÃO retorne JSON nesses casos.`,
+          area: 'Estratégia'
+        }
     ],
     'Vendas': [
         { id: 'ven_prospeccao', name: 'Carlos', specialty: 'Especialista em Prospecção B2B', avatar: 'https://i.postimg.cc/J08F9zBs/carlos.webp', voice: 'Charon', gender: 'male', systemInstruction: baseSystemInstruction('Especialista em Prospecção B2B', 'Carlos'), area: 'Vendas' },
@@ -58,6 +62,17 @@ export const AGENTS: Record<AgentArea, Agent[]> = {
         { id: 'mkt_anuncios', name: 'Fernanda', specialty: 'Criadora de Estratégias de Anúncios Pagos', avatar: 'https://i.postimg.cc/VsTrB0ns/fernanda.webp', voice: 'Kore', gender: 'female', systemInstruction: baseSystemInstruction('Criadora de Estratégias de Anúncios Pagos', 'Fernanda'), area: 'Marketing' },
         { id: 'mkt_redes', name: 'Heitor', specialty: 'Especialista em Redes Sociais e Engajamento', avatar: 'https://i.postimg.cc/WpKF6qgN/heitor.webp', voice: 'Fenrir', gender: 'male', systemInstruction: baseSystemInstruction('Especialista em Redes Sociais e Engajamento', 'Heitor'), area: 'Marketing' },
         { id: 'mkt_email', name: 'Isabela', specialty: 'Criadora de Campanhas de Email Marketing', avatar: 'https://i.postimg.cc/J7gDcHZ4/isabela.webp', voice: 'Kore', gender: 'female', systemInstruction: baseSystemInstruction('Criadora de Campanhas de Email Marketing', 'Isabela'), area: 'Marketing' },
+        { 
+            id: 'cri_visual', 
+            name: 'Vitor', 
+            specialty: 'Criador de Conteúdos Visuais', 
+            avatar: 'https://i.postimg.cc/mgdJn4w6/vitor.png', 
+            voice: 'Charon', 
+            gender: 'male', 
+            systemInstruction: 'Você é Vitor, um Criador de Conteúdos Visuais. Sua especialidade é criar e editar imagens. Responda a saudações curtas de forma amigável. Quando um usuário pedir para criar uma imagem a partir de um texto, gere a imagem e a retorne. Quando um usuário enviar uma imagem e um texto, edite a imagem conforme a instrução. Sua resposta DEVE SEMPRE conter a imagem resultante (criada ou editada) e uma breve explicação do que foi feito.', 
+            area: 'Marketing',
+            canHandleImages: true,
+        }
     ],
     'Pessoas': [
         { id: 'pes_formacao', name: 'Gabriel', specialty: 'Especialista em Formação de Pessoas', avatar: 'https://i.postimg.cc/52fC6d8n/gabriel.webp', voice: 'Charon', gender: 'male', systemInstruction: baseSystemInstruction('Especialista em Formação de Pessoas', 'Gabriel'), area: 'Pessoas' },
@@ -94,16 +109,11 @@ export const AGENTS: Record<AgentArea, Agent[]> = {
         }
     ],
     'BI': [
-        { id: 'bi_analise', name: 'Sofia', specialty: 'Especialista em Business Intelligence', avatar: 'https://i.postimg.cc/KcBX8dGS/sofia.png', voice: 'Kore', gender: 'female', 
-          systemInstruction: `Você é Sofia, uma Especialista em Business Intelligence. Sua função é analisar dados e transformá-los em insights.
-- Se o usuário pedir para criar um gráfico a partir de dados (ex: texto, CSV), sua resposta DEVE SER um objeto JSON com a estrutura exata: {"analysis": "Sua análise textual dos dados aqui.", "chartData": {"type": "bar|line|pie", "title": "Título do Gráfico", "labels": ["label1", "label2"], "values": [10, 20]}}.
-- Se o usuário fizer uma pergunta que não envolva criar um gráfico com dados, responda normalmente com texto, seguindo o padrão consultivo. NÃO retorne JSON nesses casos.`,
-// Fix: Add missing 'area' property to conform to the Agent type.
-area: 'BI'
-        }
+        { id: 'bi_dados', name: 'Gustavo', specialty: 'Cientista de Dados e Modelagem Preditiva', avatar: 'https://i.postimg.cc/Qd6w00J4/gustavo.webp', voice: 'Fenrir', gender: 'male', systemInstruction: baseSystemInstruction('Cientista de Dados e Modelagem Preditiva', 'Gustavo'), area: 'BI' },
+        { id: 'bi_visualizacao', name: 'Helena', specialty: 'Especialista em Visualização de Dados e Dashboards', avatar: 'https://i.postimg.cc/Ss200000/helena.webp', voice: 'Kore', gender: 'female', systemInstruction: baseSystemInstruction('Especialista em Visualização de Dados e Dashboards', 'Helena'), area: 'BI' }
     ]
 };
 
-export const AGENT_AREAS = Object.keys(AGENTS) as AgentArea[];
+export const AGENT_AREAS: AgentArea[] = ['Estratégia', 'Vendas', 'Marketing', 'Pessoas', 'Processos', 'Finanças'];
 export const ALL_AGENTS_LIST = [SUPER_BOSS, ...Object.values(AGENTS).flat()];
 export const ALL_AGENTS_MAP = new Map(ALL_AGENTS_LIST.map(agent => [agent.id, agent]));

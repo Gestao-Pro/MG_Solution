@@ -42,14 +42,16 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                             alt="Conteúdo da mensagem"
                             className="rounded-md max-w-full h-auto mb-2"
                         />
-                        {!isUser && ( // Only show download for agent images
-                            <IconButton
-                                icon={Download}
-                                onClick={handleDownload}
-                                tooltip="Baixar Imagem"
-                                size="sm"
-                                className="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white hover:bg-opacity-75 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                            />
+                        {!isUser && ( // Apenas mostra o download para imagens do agente
+                            <div className="absolute bottom-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                                <IconButton
+                                    icon={Download}
+                                    onClick={handleDownload}
+                                    tooltip="Baixar Imagem"
+                                    size="sm"
+                                    className="bg-black bg-opacity-50 text-white hover:bg-opacity-75"
+                                />
+                            </div>
                         )}
                     </div>
                 )}
