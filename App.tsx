@@ -144,6 +144,7 @@ const App: React.FC = () => {
         setActiveArea(area);
         setActiveAgentId(null);
         setView('agent-selection');
+        setIsSidebarOpen(false); // Close sidebar on selection
     };
 
     const handleSelectAgent = (agentId: AgentId) => {
@@ -179,6 +180,7 @@ const App: React.FC = () => {
             }));
         }
         setView('chat');
+        setIsSidebarOpen(false); // Close sidebar on selection
     };
 
     const handleBackToSelection = () => {
