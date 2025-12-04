@@ -16,6 +16,7 @@ import { fileToBase64 } from './utils/audioUtils';
 
 const App: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768); // 768px is the default 'md' breakpoint in Tailwind CSS
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
     });
@@ -45,6 +46,15 @@ const App: React.FC = () => {
     const [chats, setChats] = useState<{ [key: AgentId]: Message[] }>({});
     const [view, setView] = useState<'agent-selection' | 'chat' | 'analysis' | 'history'>('agent-selection');
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(!hasOnboarded);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         localStorage.setItem('theme', theme);
@@ -144,7 +154,9 @@ const App: React.FC = () => {
         setActiveArea(area);
         setActiveAgentId(null);
         setView('agent-selection');
-        setIsSidebarOpen(false); // Close sidebar on selection
+        if (isMobile) {
+            setIsSidebarOpen(false);
+        }
     };
 
     const handleSelectAgent = (agentId: AgentId) => {
@@ -180,7 +192,9 @@ const App: React.FC = () => {
             }));
         }
         setView('chat');
-        setIsSidebarOpen(false); // Close sidebar on selection
+        if (isMobile) {
+            setIsSidebarOpen(false);
+        }
     };
 
     const handleBackToSelection = () => {
@@ -363,7 +377,7 @@ const App: React.FC = () => {
     
     return (
         <div className="h-screen w-screen flex font-sans">
-            <div className={`${isSidebarOpen ? 'w-full md:w-64' : 'w-0'} transition-all duration-300`}>
+            <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:flex-shrink-0`}>
                 {isSidebarOpen && 
                     <Sidebar 
                         onSelectArea={handleSelectArea} 
@@ -374,7 +388,7 @@ const App: React.FC = () => {
                     />
                 }
             </div>
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <div className={`flex-1 flex flex-col h-full overflow-hidden`}>
                 <Header 
                     toggleSidebar={toggleSidebar}
                     theme={theme}
