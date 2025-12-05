@@ -1,0 +1,7 @@
+{
+  "name": "GestãoPro Multi-Agent AI",
+  "description": "An advanced multi-agent AI application designed to provide expert business solutions. Users can interact with specialized AI agents and a SuperBoss via text and voice to solve complex business challenges in strategy, sales, marketing, and more.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

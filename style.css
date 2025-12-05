@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Habilita dark mode por classe (Tailwind v4): aplica quando <html class="dark"> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Optional: you can add global styles here if needed */
