@@ -7,14 +7,28 @@ const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSave = (profile: UserProfile) => {
-    localStorage.setItem('userProfile', JSON.stringify(profile));
-    localStorage.setItem('hasOnboarded', 'true');
+    try {
+      const email = localStorage.getItem('userEmail') || '';
+      const profileKey = email ? `userProfile:${email}` : 'userProfile';
+      const onboardKey = email ? `hasOnboarded:${email}` : 'hasOnboarded';
+      localStorage.setItem(profileKey, JSON.stringify(profile));
+      localStorage.setItem(onboardKey, 'true');
+    } catch {}
     navigate('/chat');
   };
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <OnboardingModal onSave={handleSave} />
+      {(() => {
+        let initial: UserProfile | undefined = undefined;
+        try {
+          const email = localStorage.getItem('userEmail') || '';
+          const profileKey = email ? `userProfile:${email}` : 'userProfile';
+          const raw = localStorage.getItem(profileKey);
+          if (raw) initial = JSON.parse(raw);
+        } catch {}
+        return <OnboardingModal onSave={handleSave} initialProfile={initial} />;
+      })()}
     </div>
   );
 };

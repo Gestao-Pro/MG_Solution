@@ -1,52 +1,95 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { loginWithEmail, loginWithGoogle } from '@/services/authService';
 import { useToast } from '@/components/ToastProvider';
 
 interface LoginProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
+const Login: React.FC<LoginProps> = ({ isOpen, onClose, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const { addToast } = useToast();
 
-  // Inicializa Google Identity Services e renderiza botão oficial
+  const [googleInit, setGoogleInit] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [googleErrorCode, setGoogleErrorCode] = useState<'none' | 'missing_env' | 'script' | 'initialize' | 'render' | 'timeout'>('none');
+  const initializedRef = useRef(false);
+  const renderAttemptedRef = useRef(false);
+
   useEffect(() => {
     if (!isOpen) return;
-    const google = (window as any)?.google;
-    const clientId = (import.meta as any)?.env?.VITE_GOOGLE_CLIENT_ID;
-    if (!google?.accounts?.id) return;
+    const envClientId = (import.meta as any)?.env?.VITE_GOOGLE_CLIENT_ID;
+    const metaClientId = typeof document !== 'undefined'
+      ? document.querySelector('meta[name="google-client-id"]')?.getAttribute('content')
+      : undefined;
+    const clientId = (envClientId ?? metaClientId)?.toString()?.trim();
+    try { console.debug('VITE_GOOGLE_CLIENT_ID:', clientId ? '[set]' : '[missing]'); } catch {}
     if (!clientId) {
-      console.warn('VITE_GOOGLE_CLIENT_ID não configurado');
+      setGoogleInit('error');
+      setGoogleErrorCode('missing_env');
       return;
     }
-    try {
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: async (response: any) => {
-          try {
-            const idToken = response?.credential;
-            if (!idToken) throw new Error('Credencial do Google ausente');
-            await loginWithGoogle(idToken);
-            addToast('Login com Google realizado.', 'success');
-            onClose();
-          } catch (err: any) {
-            addToast(err?.message || 'Falha no login Google.', 'error');
-          }
-        },
-        ux_mode: 'popup'
-      });
-      const container = document.getElementById('google-signin-btn');
-      if (container) {
-        google.accounts.id.renderButton(container, { theme: 'filled_blue', size: 'large', text: 'signin_with' });
+    let tries = 0;
+    const maxTries = 40;
+    const interval = setInterval(() => {
+      tries += 1;
+      const google = (window as any)?.google;
+      const api = google?.accounts?.id;
+      if (api && !initializedRef.current) {
+        try {
+          setGoogleInit('loading');
+          api.initialize({
+            client_id: clientId,
+            callback: async (response: any) => {
+              try {
+                const idToken = response?.credential;
+                if (!idToken) throw new Error('Credencial do Google ausente');
+                await loginWithGoogle(idToken);
+                addToast('Login com Google realizado.', 'success');
+                if (onSuccess) {
+                  onSuccess();
+                } else {
+                  onClose();
+                }
+              } catch (err: any) {
+                addToast(err?.message || 'Falha no login Google.', 'error');
+              }
+            },
+            ux_mode: 'popup'
+          });
+          initializedRef.current = true;
+        } catch {
+          setGoogleInit('error');
+          setGoogleErrorCode('initialize');
+        }
       }
-    } catch (e) {
-      console.error('Erro ao inicializar Google Identity:', e);
-    }
-  }, [isOpen, addToast, onClose]);
+      if (api && initializedRef.current && !renderAttemptedRef.current) {
+        const container = document.getElementById('google-signin-btn');
+        if (container) {
+          try {
+            api.renderButton(container, { theme: 'filled_blue', size: 'large', text: 'signin_with' });
+            renderAttemptedRef.current = true;
+            setGoogleInit('ready');
+            clearInterval(interval);
+          } catch {
+            setGoogleInit('error');
+            setGoogleErrorCode('render');
+          }
+        }
+      }
+      if (tries >= maxTries && googleInit !== 'ready') {
+        clearInterval(interval);
+        if (!initializedRef.current) {
+          setGoogleInit('error');
+          setGoogleErrorCode(api ? 'timeout' : 'script');
+        }
+      }
+    }, 200);
+    return () => clearInterval(interval);
+  }, [isOpen, addToast, onClose, onSuccess]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +97,11 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
       await loginWithEmail(email, password);
       try { localStorage.setItem('userEmail', email); } catch {}
       addToast('Login realizado com sucesso.', 'success');
-      onClose();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        onClose();
+      }
     } catch (err: any) {
       addToast(err?.message || 'Falha ao autenticar.', 'error');
     }
@@ -64,15 +111,15 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-gray-900/80 via-gray-900/80 to-gray-900/70 backdrop-blur-md"
       aria-labelledby="modal-title"
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full max-w-md p-8 m-4 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl shadow-indigo-900/30">
+      <div className="relative w-full max-w-md p-8 m-4 bg-slate-800/30 border border-slate-700 rounded-3xl shadow-2xl shadow-indigo-700/90 ring-1 ring-white/20">
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
           aria-label="Fechar modal"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,8 +128,8 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
         </button>
 
         <div className="text-center">
-          <h2 id="modal-title" className="text-3xl font-bold text-white mb-2">Acesse a GestãoPro</h2>
-          <p className="text-gray-400 mb-8">Continue sua jornada para uma gestão mais inteligente.</p>
+          <h2 id="modal-title" className="text-3xl font-extrabold tracking-tight text-white mb-2">Acesse a GestãoPro</h2>
+          <p className="text-gray-400 mb-8">Entre e acelere sua gestão com IA — simples e elegante.</p>
         </div>
         
         <form onSubmit={handleLogin} className="space-y-6">
@@ -122,14 +169,69 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
 
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center" aria-hidden="true">
-            <div className="w-full border-t border-slate-600"></div>
+            <div className="w-full border-t border-slate-700"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-slate-800 text-gray-400">OU</span>
+            <span className="px-2 bg-slate-900 text-gray-400">OU</span>
           </div>
         </div>
         
-        <div id="google-signin-btn" className="flex justify-center"></div>
+        <div className="space-y-3">
+          <div id="google-signin-btn" className="flex justify-center"></div>
+          {googleInit === 'loading' && (
+            <div className="text-center text-sm text-gray-400">Carregando opção de login com Google…</div>
+          )}
+          {googleInit === 'error' && (
+            <div className="text-center text-sm text-red-400">
+              {googleErrorCode === 'missing_env' && (
+                <>Opção de login com Google indisponível. Verifique <code>VITE_GOOGLE_CLIENT_ID</code>.</>
+              )}
+              {googleErrorCode === 'script' && (
+                <>Falha ao carregar script do Google. Confirme o acesso a <code>https://accounts.google.com/gsi/client</code> e sua política de conteúdo (CSP).</>
+              )}
+              {googleErrorCode === 'initialize' && (
+                <>Falha ao inicializar Google Sign-In. Verifique o Client ID e domínios autorizados.</>
+              )}
+              {googleErrorCode === 'render' && (
+                <>Falha ao exibir o botão do Google. Verifique a configuração do container.</>
+              )}
+              {googleErrorCode === 'timeout' && (
+                <>Tempo esgotado ao ativar o Google Sign-In. Recarregue a página e confirme seu Client ID.</>
+              )}
+            </div>
+          )}
+          {googleInit !== 'ready' && !['missing_env','script'].includes(googleErrorCode) && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    const api = (window as any)?.google?.accounts?.id;
+                    if (!api) {
+                      setGoogleInit('error');
+                      setGoogleErrorCode('script');
+                      return;
+                    }
+                    api.prompt();
+                  } catch (e) {
+                    addToast('Não foi possível iniciar o Google Sign-In.', 'error');
+                    setGoogleInit('error');
+                    setGoogleErrorCode('initialize');
+                  }
+                }}
+                className="group inline-flex items-center gap-3 bg-white text-gray-900 px-5 py-2.5 rounded-full border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#EA4335" d="M12 10.2v3.6h5.1c-.2 1.2-1.5 3.5-5.1 3.5-3.1 0-5.6-2.6-5.6-5.7s2.5-5.7 5.6-5.7c1.8 0 3 .8 3.7 1.5l2.5-2.4C16.9 3.7 14.7 2.8 12 2.8 6.9 2.8 2.7 7 2.7 12s4.2 9.2 9.3 9.2c5.3 0 8.8-3.7 8.8-9 0-.6-.1-1.1-.2-1.6H12z"/>
+                  <path fill="#4285F4" d="M23.5 12.2c0-.6-.1-1.1-.2-1.6H12v3.6h6.5c-.3 1.7-1.3 3-2.8 3.9l2.3 1.8c2.1-1.9 3.5-4.7 3.5-7.7z"/>
+                  <path fill="#FBBC05" d="M6.9 14.5c-.4-1.1-.4-2.4 0-3.5l-2.7-2.1c-1.2 2.4-1.2 5.3 0 7.7l2.7-2.1z"/>
+                  <path fill="#34A853" d="M12 21.2c2.7 0 5-1 6.7-2.7l-2.3-1.8c-1 .7-2.3 1.2-3.7 1.2-3.6 0-6.6-2.4-7.6-5.7l-2.7 2.1C4.9 18.6 8.2 21.2 12 21.2z"/>
+                </svg>
+                <span className="text-sm font-medium">Continuar com Google</span>
+              </button>
+            </div>
+          )}
+        </div>
 
         <p className="mt-8 text-center text-sm text-gray-400">
           Não tem uma conta? <a href="#" className="font-semibold text-indigo-400 hover:text-indigo-300">Crie uma agora</a>

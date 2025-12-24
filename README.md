@@ -24,9 +24,11 @@ View your app in AI Studio: https://ai.studio/apps/drive/1V_-lBjsV6HER8GQv6VteJf
    - Optional daily limits used in the UI: `VITE_CHAT_DAILY_LIMIT_*` e `VITE_TTS_DAILY_LIMIT_*` (Free/Starter/Pro/Premium).
 4. Start the backend server:
    `npm run server`
+   - O backend usa por padrão a porta `4001` (veja `server/index.js`). Se você alterar `PORT` no `.env`, ajuste o proxy no `vite.config.ts`.
 5. Run the app:
    `npm run dev`
-   Por padrão, o servidor de desenvolvimento ficará disponível em `http://localhost:3002/` (configurado em `vite.config.ts`).
+   - O frontend roda em `http://localhost:3002/` por padrão.
+   - O fluxo de Stripe redireciona para `CLIENT_URL` (por padrão `http://localhost:3002`); mantenha essa URL consistente.
 
 Routes:
 - `/` Landing com seções de recursos, planos e FAQ.
@@ -35,4 +37,5 @@ Routes:
 - `/stripe-success` Retorno de sucesso do Stripe e aplicação do plano.
 
 ## Notas
+- Use `npm run sync-env` para sincronizar IDs de preço Stripe e o `GOOGLE_CLIENT_ID` do `.env` raiz para `server/.env`.
 - A landing page oficial está integrada no app raiz. Utilize apenas o app na porta `3002`.

@@ -50,6 +50,8 @@ const mapPairs = [
   ['VITE_STRIPE_PRICE_STARTER_YEARLY', 'STRIPE_PRICE_STARTER_YEARLY'],
   ['VITE_STRIPE_PRICE_PRO_YEARLY', 'STRIPE_PRICE_PRO_YEARLY'],
   ['VITE_STRIPE_PRICE_PREMIUM_YEARLY', 'STRIPE_PRICE_PREMIUM_YEARLY'],
+  // Keep backend Google client in sync with frontend config
+  ['VITE_GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID'],
 ];
 
 const updates = {};

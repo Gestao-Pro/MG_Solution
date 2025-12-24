@@ -1,18 +1,13 @@
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?worker';
 
 let __pdfWorkerInitialized = false;
 function ensurePdfWorker() {
   if (__pdfWorkerInitialized) return;
   if (typeof window !== 'undefined') {
-    try {
-      const worker = new Worker(new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url), { type: 'module' });
-      (pdfjsLib as any).GlobalWorkerOptions.workerPort = worker;
-      __pdfWorkerInitialized = true;
-    } catch (e) {
-      // If the ESM worker fails, keep default behavior (fake worker) without CDN.
-      __pdfWorkerInitialized = false;
-    }
+    (pdfjsLib as any).GlobalWorkerOptions.workerPort = new Worker(pdfWorkerUrl as unknown as string, { type: 'module' });
+    __pdfWorkerInitialized = true;
   }
 }
 

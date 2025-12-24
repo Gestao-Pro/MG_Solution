@@ -79,17 +79,40 @@ const App: React.FC = () => {
         document.documentElement.classList.add(theme);
     }, [theme]);
 
-    // Sync userProfile and hasOnboarded from localStorage whenever the route changes
+    // Sync userProfile and hasOnboarded from localStorage (per user) whenever the route changes
     useEffect(() => {
         try {
-            const savedProfile = localStorage.getItem('userProfile');
+            const email = localStorage.getItem('userEmail') || '';
+            const profileKey = email ? `userProfile:${email}` : 'userProfile';
+            const onboardKey = email ? `hasOnboarded:${email}` : 'hasOnboarded';
+
+            let savedProfile = localStorage.getItem(profileKey);
+            // Migrar dados antigos sem chave de email, se existirem
+            if (!savedProfile) {
+                const legacyProfile = localStorage.getItem('userProfile');
+                if (legacyProfile) {
+                    savedProfile = legacyProfile;
+                    localStorage.setItem(profileKey, legacyProfile);
+                }
+            }
+
             if (savedProfile) {
                 const parsed = JSON.parse(savedProfile);
                 if (parsed && typeof parsed === 'object') {
                     setUserProfile(parsed);
                 }
+            } else {
+                setUserProfile({ userName: 'Usuário', userRole: 'Analista' } as any);
             }
-            const onboarded = localStorage.getItem('hasOnboarded') === 'true';
+
+            let onboarded = localStorage.getItem(onboardKey) === 'true';
+            if (!onboarded) {
+                const legacyOnboard = localStorage.getItem('hasOnboarded') === 'true';
+                if (legacyOnboard) {
+                    onboarded = true;
+                    localStorage.setItem(onboardKey, 'true');
+                }
+            }
             setHasOnboarded(onboarded);
         } catch {}
     }, [location.pathname]);
@@ -125,12 +148,17 @@ const App: React.FC = () => {
 
     const handleSaveProfile = (profile: UserProfile) => {
         setUserProfile(profile);
-        localStorage.setItem('userProfile', JSON.stringify(profile));
-        setIsProfileModalOpen(false);
-        if (!hasOnboarded) {
-            setHasOnboarded(true);
-            localStorage.setItem('hasOnboarded', 'true');
-        }
+        try {
+            const email = localStorage.getItem('userEmail') || '';
+            const profileKey = email ? `userProfile:${email}` : 'userProfile';
+            const onboardKey = email ? `hasOnboarded:${email}` : 'hasOnboarded';
+            localStorage.setItem(profileKey, JSON.stringify(profile));
+            setIsProfileModalOpen(false);
+            if (!hasOnboarded) {
+                setHasOnboarded(true);
+                localStorage.setItem(onboardKey, 'true');
+            }
+        } catch {}
     };
 
     const handleEditProfile = () => {
@@ -139,7 +167,11 @@ const App: React.FC = () => {
 
     const handleFinishOnboarding = () => {
         setHasOnboarded(true);
-        localStorage.setItem('hasOnboarded', 'true');
+        try {
+            const email = localStorage.getItem('userEmail') || '';
+            const onboardKey = email ? `hasOnboarded:${email}` : 'hasOnboarded';
+            localStorage.setItem(onboardKey, 'true');
+        } catch {}
     };
 
     const handleOpenHistory = () => {
@@ -149,8 +181,7 @@ const App: React.FC = () => {
 
     const handleLogout = () => {
         try {
-            localStorage.removeItem('userProfile');
-            localStorage.removeItem('hasOnboarded');
+            // Preserve per-user profile and onboarding status; clear session-related keys
             localStorage.removeItem('analysisHistory');
             localStorage.removeItem('activeAgentId');
             localStorage.removeItem('imagenQuotaExhaustedUntil');
@@ -287,6 +318,13 @@ const App: React.FC = () => {
     const handleBackToSelection = () => {
         setActiveAgentId(null);
         setView('agent-selection');
+    };
+
+    // Ao sair do reader, redireciona diretamente para a página de login
+    const handleExitToLogin = () => {
+        setActiveAgentId(null);
+        setView('agent-selection');
+        navigate('/login');
     };
 
     const typeMessage = (agentId: AgentId, message: Message, onComplete?: () => void) => {
@@ -532,8 +570,33 @@ const App: React.FC = () => {
     // Removido retorno antecipado do OnboardingModal para não bloquear a Landing Page
 
     const activeAgent = activeAgentId ? ALL_AGENTS_MAP[activeAgentId] : null;
-    
-    const isProfileComplete = !!(userProfile.userName && userProfile.companyName && userProfile.companyField && userProfile.userRole && userProfile.companySize && userProfile.companyStage && userProfile.mainProduct && userProfile.targetAudience && userProfile.mainChallenge);
+
+    const profileIsComplete = (p: UserProfile | null | undefined) => !!(
+        p?.userName && p?.companyName && p?.companyField && p?.userRole &&
+        p?.companySize && p?.companyStage && p?.mainProduct && p?.targetAudience && p?.mainChallenge
+    );
+
+    const isProfileComplete = profileIsComplete(userProfile);
+
+    // Evita corrida de estado após salvar no OnboardingPage: lê localStorage sincronicamente
+    let storedProfileComplete = false;
+    try {
+        const email = localStorage.getItem('userEmail') || '';
+        const profileKey = email ? `userProfile:${email}` : 'userProfile';
+        const raw = localStorage.getItem(profileKey);
+        const parsed = raw ? JSON.parse(raw) : null;
+        storedProfileComplete = profileIsComplete(parsed);
+    } catch {}
+
+    const isLoginPage = location.pathname === '/login';
+    // Considera autenticado se houver token salvo
+    let isAuthenticated = false;
+    try { isAuthenticated = !!localStorage.getItem('authToken'); } catch {}
+
+    // Só redireciona ao onboarding se perfil incompleto E usuário autenticado
+    const shouldRedirectToOnboarding = isAuthenticated && !isProfileComplete && !storedProfileComplete && !isLoginPage;
+    // Se não autenticado, qualquer acesso a /chat deve ir para login
+    const shouldRedirectToLogin = !isAuthenticated;
 
     return (
             <Routes>
@@ -543,7 +606,8 @@ const App: React.FC = () => {
                 <Route path="/stripe-success" element={<StripeSuccessPage />} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/chat" element={(
-                    !isProfileComplete ? <Navigate to="/onboarding" /> :
+                    shouldRedirectToLogin ? <Navigate to="/login" /> :
+                    shouldRedirectToOnboarding ? <Navigate to="/onboarding" /> :
                     <div className="h-screen w-screen flex font-sans">
                         {/**
                          * Mobile: Sidebar é fixa e desliza com translate-x.
@@ -576,7 +640,6 @@ const App: React.FC = () => {
                                 onEditProfile={handleEditProfile}
                                 onSaveSession={saveCurrentSession}
                                 onLogout={handleLogout}
-                                onUpgrade={() => addToast('Planos e preços em breve.', 'info')}
                             />
                             <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-800">
                                 <>
@@ -590,8 +653,9 @@ const App: React.FC = () => {
                 (() => {
                     const gatingEnv = (getEnv('VITE_AGENT_GATING_ENABLED', 'true') || 'true').toLowerCase();
                     const isEnvEnabled = gatingEnv === 'true' || gatingEnv === '1' || gatingEnv === 'yes';
+                    const isDev = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.DEV;
                     const qs = new URLSearchParams(location.search);
-                    const debugAllAgents = qs.get('debug') === 'all-agents' || localStorage.getItem('debugAllAgents') === 'true';
+                    const debugAllAgents = isDev && (qs.get('debug') === 'all-agents' || localStorage.getItem('debugAllAgents') === 'true');
                     const gatingEnabled = isEnvEnabled && !debugAllAgents;
                     const allowedIds = gatingEnabled ? new Set(getEnabledAgentIdsForAreaAndPlanAndCycle(activeArea, plan, cycle)) : null;
                     const visibleAgents = gatingEnabled
@@ -612,14 +676,14 @@ const App: React.FC = () => {
                                             messages={chats[activeAgent.id] || []}
                                             onSendMessage={handleSendMessage}
                                             loading={loading}
-                                            onBack={handleBackToSelection}
+                                            onBack={handleExitToLogin}
                                             onClearConversation={() => handleClearConversation(activeAgent.id)}
                                         />
                                     )}
                                     {view === 'analysis' && currentAnalysis && userProfile && (
                                         <AnalysisPanel 
                                             analysis={currentAnalysis} 
-                                            onBack={handleBackToSelection} 
+                                            onBack={handleExitToLogin} 
                                             userProfile={userProfile} 
                                         />
                                     )}

@@ -4,11 +4,12 @@ import Login from '../components/Login';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const handleClose = () => navigate('/onboarding');
+  const handleClose = () => navigate('/');
+  const handleSuccess = () => navigate('/chat');
 
   return (
     <div className="min-h-screen bg-slate-900">
-      <Login isOpen={true} onClose={handleClose} />
+      <Login isOpen={true} onClose={handleClose} onSuccess={handleSuccess} />
     </div>
   );
 };

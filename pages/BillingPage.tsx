@@ -102,9 +102,9 @@ const BillingPage: React.FC = () => {
               <button className={`px-2 py-1 text-xs ${selectedCycle==='monthly' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}
                 onClick={() => { setSelectedCycle('monthly'); trackEvent('billing_cycle_toggle', { cycle: 'monthly', userId }); }}>Mensal</button>
               <button className={`px-2 py-1 text-xs ${selectedCycle==='yearly' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}
-                onClick={() => { if (!starterYearlyConfigured && !proYearlyConfigured) return; setSelectedCycle('yearly'); trackEvent('billing_cycle_toggle', { cycle: 'yearly', userId }); }} disabled={!starterYearlyConfigured && !proYearlyConfigured}>Anual</button>
+                onClick={() => { if (!pricing?.starterYearly && !pricing?.proYearly && !pricing?.premiumYearly) return; setSelectedCycle('yearly'); trackEvent('billing_cycle_toggle', { cycle: 'yearly', userId }); }} disabled={!pricing?.starterYearly && !pricing?.proYearly && !pricing?.premiumYearly}>Anual</button>
             </div>
-            {(!starterYearlyConfigured && !proYearlyConfigured) && (
+            {(!pricing?.starterYearly && !pricing?.proYearly && !pricing?.premiumYearly) && (
               <span className="text-xs text-gray-500">Planos anuais não configurados</span>
             )}
           </div>

@@ -1,3 +1,27 @@
 {
-  "users": {}
+  "users": {
+    "dev@example.com": {
+      "plan": "free",
+      "cycle": "monthly"
+    },
+    "datasolution086@gmail.com": {
+      "plan": "free",
+      "cycle": "monthly"
+    },
+    "olairg@gmail.com": {
+      "plan": "premium",
+      "cycle": "monthly",
+      "stripeCustomerId": "cus_TcZOE5dzVXW9ER",
+      "stripeSubscriptionId": "sub_1SfKFWPMtv7GaaDruUaOm3OX"
+    },
+    "territoriozumbi@gmail.com": {
+      "plan": "free",
+      "cycle": "monthly"
+    }
+  },
+  "analytics": [
+    {
+      "at": 1765808131473
+    }
+  ]
 }

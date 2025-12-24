@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
         port: 3002,
         strictPort: true,
         host: '0.0.0.0',
+        headers: {
+          // Allow Google Identity popups to communicate via postMessage
+          'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+        },
         proxy: {
           '/api': 'http://localhost:4001',
         },

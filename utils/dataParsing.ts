@@ -1,4 +1,3 @@
-import type { File } from 'buffer';
 import * as XLSX from 'xlsx';
 
 export interface ParsedChartData {
