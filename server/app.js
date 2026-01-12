@@ -8,7 +8,7 @@ import bodyParser from 'body-parser';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -146,11 +146,12 @@ app.get('/api/health', async (req, res) => {
       stripeKeyConfigured: !!STRIPE_SECRET_KEY && STRIPE_SECRET_KEY.trim() !== '' && STRIPE_SECRET_KEY.trim() !== 'sk_test_',
       nodeEnv: (process.env.NODE_ENV || 'dev')
     },
-    database: { ok: null, error: null },
+    // database: { ok: null, error: null },
     stripe: { ok: null, error: null },
   };
 
   // DB check (leve)
+  /*
   try {
     await prisma.$queryRaw`SELECT 1`;
     details.database.ok = true;
@@ -158,6 +159,7 @@ app.get('/api/health', async (req, res) => {
     details.database.ok = false;
     details.database.error = e?.message || String(e);
   }
+  */
 
   // Stripe check (leve)
   if (details.env.stripeKeyConfigured) {
@@ -466,6 +468,7 @@ app.post('/api/generate-speech', ensureJsonBody, requireAuth, limitTTS, async (r
 // Parser JSON para demais rotas (o webhook acima precisa do corpo "raw")
 app.use(express.json());
 
+/*
 // Plano do usuário
 app.get('/api/user/plan', requireAuth, async (req, res) => {
   try {
@@ -559,6 +562,7 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
     return res.status(401).json({ error: 'Falha ao verificar token Google' });
   }
 });
+*/
 
 // Retrieve a checkout session info (used by frontend)
 app.get('/api/checkout/session/:id', requireAuth, async (req, res) => {
