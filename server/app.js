@@ -60,25 +60,14 @@ app.use(cors({
 }));
 
 // Apply JSON parser for all routes except Stripe webhook which needs raw body
-app.use((req, res, next) => {
-  const p = req.path || '';
-  if (p === '/api/stripe/webhook' || p === '/api/webhooks/stripe') return next();
-  return express.json()(req, res, next);
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req, res, next) => {
+  // A rota do webhook do Stripe precisa do corpo raw, então o parser é aplicado aqui
+  // Todas as outras rotas POST/PUT usarão express.json() abaixo
+  next();
 });
 
-// Fallback parser: garante req.body JSON mesmo quando o middleware padrão não atuou
-const ensureJsonBody = (req, res, next) => {
-  if (req.body && typeof req.body === 'object') return next();
-  const ct = (req.headers['content-type'] || '').toLowerCase();
-  if (!ct.includes('application/json')) return next();
-  let data = '';
-  req.setEncoding('utf8');
-  req.on('data', (chunk) => { data += chunk; });
-  req.on('end', () => {
-    try { req.body = JSON.parse(data || '{}'); } catch { req.body = {}; }
-    next();
-  });
-};
+app.use(express.json());
+
 
 
 // Simple fixed-window rate limiter (in-memory)
