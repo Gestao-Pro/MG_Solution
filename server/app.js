@@ -4,20 +4,10 @@ import helmet from 'helmet';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
 import Stripe from 'stripe';
-import bodyParser from 'body-parser';
-import { fileURLToPath } from 'url';
-import path from 'path';
-import fs from 'fs';
-import dotenv from 'dotenv';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config({ path: path.join(__dirname, '.env') });
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -137,8 +127,45 @@ const requireAuth = (req, res, next) => {
   }
 };
 
-// Healthcheck
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+// Healthcheck estendido: valida DB (Prisma) e Stripe (segredo configurado)
+app.get('/api/health', async (req, res) => {
+  const details = {
+    env: {
+      clientUrl: CLIENT_URL,
+      hasJwtSecret: !!AUTH_JWT_SECRET,
+      hasGoogleClientId: !!GOOGLE_CLIENT_ID,
+      stripeKeyConfigured: !!STRIPE_SECRET_KEY && STRIPE_SECRET_KEY.trim() !== '' && STRIPE_SECRET_KEY.trim() !== 'sk_test_',
+      nodeEnv: (process.env.NODE_ENV || 'dev')
+    },
+    database: { ok: null, error: null },
+    stripe: { ok: null, error: null },
+  };
+
+  // DB check (leve)
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    details.database.ok = true;
+  } catch (e) {
+    details.database.ok = false;
+    details.database.error = e?.message || String(e);
+  }
+
+  // Stripe check (leve)
+  if (details.env.stripeKeyConfigured) {
+    try {
+      await stripe.prices.list({ limit: 1 });
+      details.stripe.ok = true;
+    } catch (e) {
+      details.stripe.ok = false;
+      details.stripe.error = e?.message || String(e);
+    }
+  } else {
+    details.stripe.ok = null; // não configurado / ambiente de dev
+  }
+
+  const okOverall = (details.database.ok !== false) && (details.stripe.ok !== false);
+  res.json({ ok: okOverall, ...details });
+});
 
 // Pricing (public)
 app.get('/api/pricing', async (req, res) => {
