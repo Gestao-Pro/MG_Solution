@@ -535,34 +535,27 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
     const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
     const payload = ticket.getPayload();
     if (!payload) return res.status(401).json({ error: 'Token inválido' });
-    const email = payload.email || '';
-    const name = payload.name || '';
-    const picture = payload.picture || '';
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email não encontrado no token do Google' });
+    const { email, name, picture } = payload;
+    if (!email) return res.status(400).json({ error: 'Email não encontrado no token do Google' });
+
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: name || 'Usuário',
+          avatarUrl: picture,
+          plan: 'FREE',
+        },
+      });
     }
 
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {
-        name,
-        picture,
-      },
-      create: {
-        email,
-        name,
-        picture,
-      },
-    });
-
-    const now = Math.floor(Date.now() / 1000);
-    const token = jwt.sign({ sub: user.id, email: user.email, name, picture, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
-    
-    return res.json({ token, profile: { email, name, picture } });
+    const token = jwt.sign({ id: user.id, email: user.email, plan: user.plan }, AUTH_JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user });
   } catch (e) {
-    console.error('Falha login Google:', e?.message || e);
-    return res.status(401).json({ error: 'Falha ao verificar token Google' });
+    console.error('Google Auth Error:', e);
+    res.status(500).json({ error: 'Falha na autenticação com Google', details: e.message });
   }
 });
 
