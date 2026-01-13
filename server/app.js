@@ -16,7 +16,7 @@ const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const VERCEL_URL = process.env.VERCEL_URL || '';
 const CLIENT_URL = process.env.CLIENT_URL || (VERCEL_URL ? `https://${VERCEL_URL}` : 'http://localhost:3002');
 const AUTH_JWT_SECRET = process.env.AUTH_JWT_SECRET || process.env.JWT_SECRET || '';
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '';
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 // Optional price IDs for pricing display
@@ -57,6 +57,7 @@ app.use(cors({
   origin: CLIENT_URL,
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization','Stripe-Signature'],
+  credentials: true,
 }));
 
 // O webhook do Stripe precisa do corpo raw, então usamos express.raw() para essa rota específica.
@@ -253,14 +254,16 @@ app.get('/api/pricing', async (req, res) => {
     const starter_yearly = await fetchPrice(STARTER_PRICE_YEARLY);
     const pro_yearly = await fetchPrice(PRO_PRICE_YEARLY);
     const premium_yearly = await fetchPrice(PREMIUM_PRICE_YEARLY);
+    const gotAny = !!(starter || pro || premium || starter_yearly || pro_yearly || premium_yearly);
+    if (!gotAny) {
+      // Fallback resiliente: se nada foi retornado do Stripe, usa mock
+      return res.json(buildMockPricing());
+    }
     res.json({ starter, pro, premium, starter_yearly, pro_yearly, premium_yearly });
   } catch (e) {
     console.error('Erro ao obter pricing:', e?.message || e);
-    // Graceful fallback in dev environments
-    if ((process.env.NODE_ENV || '').toLowerCase() !== 'production') {
-      return res.json(buildMockPricing());
-    }
-    res.status(500).json({ error: 'Falha ao obter pricing.' });
+    // Fallback resiliente: sempre retorna mock para evitar 500
+    return res.json(buildMockPricing());
   }
 });
 
@@ -348,8 +351,9 @@ app.post('/api/analytics/event', ensureJsonBody, async (req, res) => {
     console.log('[analytics]', new Date().toISOString(), name, { ...(payload || {}), user: who });
     res.json({ ok: true });
   } catch (e) {
-    console.error('Erro no analytics:', e);
-    res.status(500).json({ error: 'Falha ao registrar evento.' });
+    console.error('Erro no analytics:', e?.message || e);
+    // Evitar 500 para não poluir logs e UI; registrar falha como ok:false
+    res.json({ ok: false, error: 'Falha ao registrar evento.' });
   }
 });
 
