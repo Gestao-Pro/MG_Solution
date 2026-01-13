@@ -33,7 +33,7 @@ if (!STRIPE_SECRET_KEY) {
 }
 
 // Use SDK default API version to avoid invalid version errors
-const stripe = new Stripe(STRIPE_SECRET_KEY || 'sk_test_');
+// const stripe = new Stripe(STRIPE_SECRET_KEY || 'sk_test_');
 const app = express();
 // Confia em proxy para obter IP real (necessário em ambientes com proxy)
 app.set('trust proxy', 1);
@@ -70,6 +70,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
   let event;
 
   try {
+    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
     event = stripe.webhooks.constructEvent(req.body, sig, WEBHOOK_SECRET);
   } catch (err) {
     console.error('Webhook signature verification failed.', err.message);
@@ -162,6 +163,7 @@ app.get('/api/health', async (req, res) => {
   // Stripe check (leve)
   if (details.env.stripeKeyConfigured) {
     try {
+      const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
       await stripe.prices.list({ limit: 1 });
       details.stripe.ok = true;
     } catch (e) {
@@ -228,6 +230,7 @@ app.get('/api/pricing', async (req, res) => {
       }
       try {
         console.log(`[pricing/fetchPrice] Attempting to retrieve price for ID: ${id}`);
+        const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
         const price = await stripe.prices.retrieve(id, { expand: ['product'] });
         console.log(`[pricing/fetchPrice] Successfully retrieved price for ID: ${id}`, price);
         const productObj = typeof price.product === 'string' ? undefined : price.product;
@@ -268,6 +271,7 @@ app.post('/api/checkout/session', requireAuth, limitCheckoutCreate, async (req, 
     const userEmail = (req.user && req.user.email) ? req.user.email : undefined;
     if (!priceId) return res.status(400).json({ error: 'priceId é obrigatório' });
     const mode = cycle === 'yearly' ? 'subscription' : 'subscription';
+    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
     const session = await stripe.checkout.sessions.create({
       mode,
       line_items: [{ price: priceId, quantity: 1 }],
@@ -289,6 +293,7 @@ app.post('/api/billing/portal', requireAuth, limitBillingPortal, async (req, res
   try {
     const { sessionId } = req.body || {};
     if (!sessionId) return res.status(400).json({ error: 'sessionId é obrigatório' });
+    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     const customerId = session.customer;
     if (!customerId) return res.status(400).json({ error: 'Cliente não encontrado para a sessão.' });
@@ -523,9 +528,10 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
   try {
     if (!AUTH_JWT_SECRET) return res.status(500).json({ error: 'AUTH_JWT_SECRET não configurado' });
-    if (!GOOGLE_CLIENT_ID || !googleClient) return res.status(500).json({ error: 'GOOGLE_CLIENT_ID ausente no servidor' });
+    if (!GOOGLE_CLIENT_ID) return res.status(500).json({ error: 'GOOGLE_CLIENT_ID ausente no servidor' });
     const { idToken } = req.body || {};
     if (!idToken || typeof idToken !== 'string') return res.status(400).json({ error: 'idToken é obrigatório' });
+    const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
     const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
     const payload = ticket.getPayload();
     if (!payload) return res.status(401).json({ error: 'Token inválido' });
