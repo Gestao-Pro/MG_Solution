@@ -89,6 +89,27 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 app.use(express.json());
 
 
+// Middleware para garantir que req.body seja um objeto JSON
+const ensureJsonBody = (req, res, next) => {
+  try {
+    if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+      return next();
+    }
+    if (Buffer.isBuffer(req.body)) {
+      try { req.body = JSON.parse(req.body.toString('utf8')); } catch { req.body = {}; }
+      return next();
+    }
+    if (typeof req.body === 'string') {
+      try { req.body = JSON.parse(req.body); } catch { req.body = {}; }
+      return next();
+    }
+    req.body = req.body || {};
+    next();
+  } catch {
+    req.body = {};
+    next();
+  }
+};
 
 
 // Simple fixed-window rate limiter (in-memory)
