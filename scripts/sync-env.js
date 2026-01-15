@@ -44,6 +44,7 @@ const rootEnv = parseEnv(rootEnvText);
 const serverEnv = parseEnv(serverEnvText);
 
 const mapPairs = [
+  ['DATABASE_URL', 'DATABASE_URL'],
   ['VITE_STRIPE_PRICE_STARTER', 'STRIPE_PRICE_STARTER'],
   ['VITE_STRIPE_PRICE_PRO', 'STRIPE_PRICE_PRO'],
   ['VITE_STRIPE_PRICE_PREMIUM', 'STRIPE_PRICE_PREMIUM'],

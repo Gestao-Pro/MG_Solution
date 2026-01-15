@@ -8,7 +8,20 @@ export const getApiBase = (): string => {
 };
 
 export const apiFetch = (path: string, init?: RequestInit) => {
-  const base = getApiBase();
-  const url = base ? `${base}${path}` : path;
-  return fetch(url, init);
+  const rawBase = getApiBase();
+  const base = (typeof rawBase === 'string' ? rawBase.trim() : '');
+  if (!base) return fetch(path, init);
+
+  // Normalize base and path to avoid duplicate segments like /api/api/*
+  const normalizedBase = base.replace(/\/+$/, ''); // remove trailing slashes
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  // If base already ends with /api and path starts with /api, avoid duplication
+  const endsWithApi = /\/api$/i.test(normalizedBase);
+  const startsWithApi = /^\/api(\/|$)/i.test(normalizedPath);
+  const joined = endsWithApi && startsWithApi
+    ? normalizedBase + normalizedPath.replace(/^\/api/, '')
+    : normalizedBase + normalizedPath;
+
+  return fetch(joined, init);
 };

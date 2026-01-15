@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 3002 --strictPort --host",
-    "build": "vite build",
+    "sync-env": "node scripts/sync-env.js",
+    "build": "tsc && vite build",
     "preview": "vite preview",
-    "server": "node server/index.js",
-    "sync-env": "node scripts/sync-env.js"
+    "server": "node server/index.js"
   },
   "dependencies": {
     "@google/genai": "^1.28.0",
