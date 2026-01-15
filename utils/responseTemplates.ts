@@ -7,7 +7,7 @@ export interface ResponseTemplate {
 }
 
 export const RESPONSE_TEMPLATES: Record<AgentArea, ResponseTemplate[]> = {
-  [AgentArea.Estrategia]: [
+  'Estratégia': [
     {
       name: 'Mapa de Concorrência (3×3)',
       keywords: ['concorrência', 'competidor', 'posicionamento', 'benchmark'],
@@ -36,7 +36,7 @@ export const RESPONSE_TEMPLATES: Record<AgentArea, ResponseTemplate[]> = {
 - Próximos passos: [3 etapas, datas]`,
     },
   ],
-  [AgentArea.Vendas]: [
+  'Vendas': [
     {
       name: 'Cadência de Prospecção B2B (14 dias)',
       keywords: ['prospecção', 'cadência', 'outbound', 'cold'],
@@ -65,7 +65,7 @@ export const RESPONSE_TEMPLATES: Record<AgentArea, ResponseTemplate[]> = {
 - Rotina diária: [checklist]`,
     },
   ],
-  [AgentArea.Marketing]: [
+  'Marketing': [
     {
       name: 'Funil TOFU/MOFU/BOFU',
       keywords: ['funil', 'leads', 'tofu', 'mofu', 'bofu'],
@@ -93,7 +93,7 @@ export const RESPONSE_TEMPLATES: Record<AgentArea, ResponseTemplate[]> = {
 - Métricas: [KPIs]`,
     },
   ],
-  [AgentArea.Pessoas]: [
+  'Pessoas': [
     {
       name: 'Trilha de Formação (90 dias)',
       keywords: ['formação', 'treinamento', 'onboarding'],
@@ -121,7 +121,7 @@ export const RESPONSE_TEMPLATES: Record<AgentArea, ResponseTemplate[]> = {
 - Oferta: [faixa e benefícios]`,
     },
   ],
-  [AgentArea.Processos]: [
+  'Processos': [
     {
       name: 'SIPOC Enxuto',
       keywords: ['processo', 'mapeamento', 'sipoc'],
@@ -150,7 +150,7 @@ export const RESPONSE_TEMPLATES: Record<AgentArea, ResponseTemplate[]> = {
 - Implementação: [etapas]`,
     },
   ],
-  [AgentArea.Financas]: [
+  'Finanças': [
     {
       name: 'Precificação com Markup',
       keywords: ['preço', 'precificação', 'margem', 'markup'],

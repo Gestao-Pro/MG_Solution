@@ -45,7 +45,7 @@ export const loginWithGoogle = async (idToken: string): Promise<string> => {
   saveAuthToken(data.token);
   try { trackEvent('login_success', { method: 'google' }); } catch {}
   try {
-    const email = (data?.profile?.email as string) || '';
+    const email = (data?.user?.email as string) || '';
     if (email) localStorage.setItem('userEmail', email);
   } catch {}
   return data.token;

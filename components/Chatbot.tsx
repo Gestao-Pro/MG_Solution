@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChatMessage } from '../types';
+// Definimos um tipo local simples para o mini chat do SuperBoss
+interface ChatMessage {
+  id: number;
+  text: string;
+  sender: 'bot' | 'user';
+}
 import { SUPERBOSS_AVATAR_URL } from '../constants';
 
 const Chatbot: React.FC = () => {

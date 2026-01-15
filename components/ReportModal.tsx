@@ -40,12 +40,12 @@ const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfil
         const generateReport = async () => {
             try {
                 setStatus('Reescrevendo a análise em linguagem de negócios...');
-                const { rewrittenProblem, rewrittenSolutions: solutionsFromApi } = await generatePdfReportContent(analysis, userProfile);
+                const { rewrittenProblem, rewrittenSolutions: solutionsFromApi } = await generatePdfReportContent({ analysis, userProfile });
                 
                 setStatus('Identificando oportunidades para visuais...');
                 const solutionsWithVisuals: RewrittenSolution[] = await Promise.all(
                     solutionsFromApi.map(async (sol) => {
-                        const agent = ALL_AGENTS_MAP.get(sol.agentId);
+                        const agent = ALL_AGENTS_MAP[sol.agentId];
                         if (!agent) return { ...sol, agent: null, visualUrl: undefined };
                         
                         let visualUrl: string | undefined;

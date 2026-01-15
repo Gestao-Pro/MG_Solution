@@ -6,6 +6,9 @@ interface ErrorBoundaryState {
 }
 
 export class ErrorBoundary extends React.Component<{ children: React.ReactNode }, ErrorBoundaryState> {
+  // Explicit property declarations to satisfy TypeScript
+  declare props: Readonly<{ children: React.ReactNode }>;
+  state: ErrorBoundaryState;
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
@@ -15,7 +18,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Could be wired to a telemetry service
     console.error('React runtime error caught by ErrorBoundary:', error, errorInfo);
   }

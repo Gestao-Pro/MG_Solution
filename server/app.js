@@ -7,6 +7,9 @@ import Stripe from 'stripe';
 import bodyParser from 'body-parser';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const prisma = new PrismaClient();
 
@@ -44,10 +47,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "style-src": ["'self'", "'unsafe-inline'", "https://accounts.google.com"],
-      "script-src": ["'self'", "https://accounts.google.com/gsi/client"],
-      "frame-src": ["'self'", "https://accounts.google.com/gsi/"],
-      "connect-src": ["'self'", "https://accounts.google.com/gsi/"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://*.gstatic.com"],
+      "script-src": ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://accounts.google.com/gsi/client", "https://*.gstatic.com"],
+      "frame-src": ["'self'", "https://accounts.google.com", "https://accounts.google.com/gsi/"],
+      "connect-src": ["'self'", "https://accounts.google.com", "https://accounts.google.com/gsi/"],
     },
   },
 }));
@@ -109,6 +112,37 @@ const ensureJsonBody = (req, res, next) => {
     req.body = {};
     next();
   }
+};
+
+// Simple file-based store utilities (used by analytics and graceful fallbacks in dev)
+const serverRoot = path.dirname(fileURLToPath(import.meta.url));
+const storePath = path.join(serverRoot, 'data');
+const storeFile = path.join(storePath, 'store.json');
+try {
+  if (!fs.existsSync(storePath)) fs.mkdirSync(storePath, { recursive: true });
+  if (!fs.existsSync(storeFile)) fs.writeFileSync(storeFile, JSON.stringify({ users: {}, analytics: [] }, null, 2));
+} catch {}
+
+const readStore = () => {
+  try {
+    const raw = fs.readFileSync(storeFile, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return { users: {}, analytics: [] };
+  }
+};
+
+const writeStore = (db) => {
+  try {
+    fs.writeFileSync(storeFile, JSON.stringify(db || { users: {}, analytics: [] }, null, 2));
+  } catch {}
+};
+
+const ensureStoreShape = () => {
+  const db = readStore();
+  db.users = db.users && typeof db.users === 'object' ? db.users : {};
+  db.analytics = Array.isArray(db.analytics) ? db.analytics : [];
+  return db;
 };
 
 
@@ -563,20 +597,22 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
 
     const { email, name, picture } = payload;
     if (!email) return res.status(400).json({ error: 'Email não encontrado no token do Google' });
-
-    let user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          email,
-          name: name || 'Usuário',
-          avatarUrl: picture,
-          plan: 'FREE',
-        },
+    let user;
+    try {
+      // Upsert usuário com campos válidos do schema Prisma
+      user = await prisma.user.upsert({
+        where: { email },
+        update: { name: name || undefined, picture: picture || undefined },
+        create: { email, name: name || undefined, picture: picture || undefined },
       });
+    } catch (dbErr) {
+      // Fallback leve para ambientes sem DB: mantém login funcional
+      try { console.warn('Prisma indisponível, usando fallback leve de usuário.', dbErr?.message || dbErr); } catch {}
+      user = { id: email, email, name: name || 'Usuário', picture: picture || undefined };
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email, plan: user.plan }, AUTH_JWT_SECRET, { expiresIn: '7d' });
+    const now = Math.floor(Date.now() / 1000);
+    const token = jwt.sign({ sub: user.id, email: user.email, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user });
   } catch (e) {
     console.error('Google Auth Error:', e);

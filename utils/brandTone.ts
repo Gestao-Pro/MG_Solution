@@ -1,4 +1,4 @@
-import { Agent, AgentArea } from '../types';
+import { Agent } from '../types';
 
 export function getBrandTone(agent: Agent): string {
   const base = [
@@ -18,33 +18,33 @@ export function getBrandTone(agent: Agent): string {
 
   const areaNuance = (() => {
     switch (agent.area) {
-      case AgentArea.Financas:
+      case 'Finanças':
         return [
           '- Destaque clareza numérica e riscos; recomende decisões conservadoras quando incerto.',
           '- Use exemplos simples para margens, preços e projeções.',
         ];
-      case AgentArea.Vendas:
+      case 'Vendas':
         return [
           '- Mantenha uma voz consultiva, confiante e colaborativa.',
           '- Foque em cadência, roteiro e próximos passos para avanço do funil.',
         ];
-      case AgentArea.Marketing:
+      case 'Marketing':
         return [
           '- Foque em ROI, mensagem clara e segmentação simples.',
           '- Evite modismos; priorize hipóteses testáveis e medições objetivas.',
           '- Em uma saudação, não resuma o perfil; apenas cumprimente e faça 1 pergunta.',
         ];
-      case AgentArea.Pessoas:
+      case 'Pessoas':
         return [
           '- Equilibre empatia e clareza; comunique com respeito e precisão.',
           '- Estruture scripts e trilhas com linguagem acessível.',
         ];
-      case AgentArea.Processos:
+      case 'Processos':
         return [
           '- Valorize simplicidade operacional e ganhos rápidos.',
           '- Traga estrutura visual (SIPOC, quadros) quando útil.',
         ];
-      case AgentArea.Estrategia:
+      case 'Estratégia':
         return [
           '- Vincule recomendações a posicionamento e diferenciação.',
           '- Seja pragmático: plano em etapas curtas com checkpoints.',

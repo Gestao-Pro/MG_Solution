@@ -50,23 +50,57 @@ export const generateSpeech = async (
   }
 };
 
-export const generatePdfReportContent = async (reportData: Record<string, unknown>): Promise<string> => {
-  console.log(`Gerando conteúdo de relatório PDF para os dados: ${JSON.stringify(reportData)}`);
-  // Simulação de geração de conteúdo de PDF (retorna string dummy)
+import { Analysis, UserProfile } from '@/types';
+
+export type PdfReportSolutionFromApi = {
+  agentId: string;
+  rewrittenSolution: string;
+  visualPrompt?: string;
+  visualTitle?: string;
+};
+
+export type PdfReportResponse = {
+  rewrittenProblem: string;
+  rewrittenSolutions: PdfReportSolutionFromApi[];
+};
+
+export const generatePdfReportContent = async (
+  input: { analysis: Analysis; userProfile: UserProfile }
+): Promise<PdfReportResponse> => {
+  const { analysis, userProfile } = input;
+  console.log(`Gerando conteúdo de relatório PDF para análise: ${JSON.stringify(analysis)} e perfil: ${JSON.stringify(userProfile)}`);
+
+  // Geração simples e determinística baseada nos dados já disponíveis
+  const companyBits = [
+    userProfile.companyName,
+    userProfile.companyField,
+    userProfile.companyStage,
+  ].filter(Boolean).join(' · ');
+
+  const rewrittenProblem = `Resumo executivo: ${analysis.problemSummary}. Contexto: ${companyBits || '—'}.`;
+
+  const rewrittenSolutions: PdfReportSolutionFromApi[] = (analysis.involvedAgentIds || []).map((agentId: string) => ({
+    agentId,
+    rewrittenSolution: `Recomendação inicial para ${agentId}: **Direção:** Foque nas ações com maior impacto e menor complexidade. *Passo 1:* Defina 1 objetivo claro; *Passo 2:* Liste 2 iniciativas; *Passo 3:* Estabeleça um KPI para acompanhamento.`,
+    visualPrompt: `Visual simples para agente ${agentId}: gráfico ou diagrama de etapas.`,
+    visualTitle: `Visual de apoio – ${agentId}`,
+  }));
+
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve("%PDF-1.4\nDummy PDF content simulado para o relatório");
-    }, 1200);
+      resolve({ rewrittenProblem, rewrittenSolutions });
+    }, 800);
   });
 };
 
-export const generateVisualForReport = async (reportData: Record<string, unknown>): Promise<string> => {
-  console.log(`Gerando visual para o relatório com dados: ${JSON.stringify(reportData)}`);
+export const generateVisualForReport = async (prompt: string | Record<string, unknown>): Promise<string> => {
+  const desc = typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+  console.log(`Gerando visual para o relatório a partir do prompt: ${desc}`);
   // Simulação de geração de visual (retorna URL dummy de imagem SVG)
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgc3Ryb2tlPSJibHVlIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9ImxpZ2h0Ymx1ZSIgLz48L3N2Zz4=");
-    }, 1500);
+      resolve('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgc3Ryb2tlPSJibHVlIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9ImxpZ2h0Ymx1ZSIgLz48L3N2Zz4=');
+    }, 700);
   });
 };
 

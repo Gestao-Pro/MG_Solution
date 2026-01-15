@@ -7,6 +7,8 @@ interface AnimatedElementProps<T extends keyof React.JSX.IntrinsicElements> {
   // This resolves both the "union type too complex" error and the ref incompatibility by inferring the correct element type from the tag.
   tag?: T;
   delay?: number;
+  // Allow React's special key without TypeScript complaining on generic function components
+  key?: React.Key;
 }
 
 const AnimatedElement = <T extends keyof React.JSX.IntrinsicElements = 'div'>({
