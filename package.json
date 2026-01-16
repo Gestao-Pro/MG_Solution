@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --port 3002 --strictPort --host",
     "sync-env": "node scripts/sync-env.js",
-    "build": "tsc && prisma generate && vite build",
+    "build": "tsc && prisma generate --schema=./server/prisma/schema.prisma && vite build",
     "preview": "vite preview",
     "server": "node server/index.js"
   },
