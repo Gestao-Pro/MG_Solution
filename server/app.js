@@ -591,8 +591,16 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
     const { idToken } = req.body || {};
     if (!idToken || typeof idToken !== 'string') return res.status(400).json({ error: 'idToken é obrigatório' });
     const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
-    const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
-    const payload = ticket.getPayload();
+
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
+      payload = ticket.getPayload();
+    } catch (ve) {
+      try { console.warn('Falha na verificação do idToken do Google:', ve?.message || ve); } catch {}
+      return res.status(401).json({ error: 'Token inválido', details: ve?.message || 'Verificação de token falhou' });
+    }
+
     if (!payload) return res.status(401).json({ error: 'Token inválido' });
 
     const { email, name, picture } = payload;
