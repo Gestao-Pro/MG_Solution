@@ -323,7 +323,7 @@ const App: React.FC = () => {
     // Ao sair do reader, redireciona diretamente para a página de login
     const handleExitToLogin = () => {
         setActiveAgentId(null);
-        setView('agent-selection');
+        setView('login');
         navigate('/login');
     };
 
@@ -676,14 +676,14 @@ const App: React.FC = () => {
                                             messages={chats[activeAgent.id] || []}
                                             onSendMessage={handleSendMessage}
                                             loading={loading}
-                                            onBack={handleExitToLogin}
+                                            onBack={handleBackToSelection}
                                             onClearConversation={() => handleClearConversation(activeAgent.id)}
                                         />
                                     )}
                                     {view === 'analysis' && currentAnalysis && userProfile && (
                                         <AnalysisPanel 
                                             analysis={currentAnalysis} 
-                                            onBack={handleExitToLogin} 
+                                            onBack={handleBackToAgentSelection} 
                                             userProfile={userProfile} 
                                         />
                                     )}
