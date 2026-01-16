@@ -683,7 +683,7 @@ const App: React.FC = () => {
                                     {view === 'analysis' && currentAnalysis && userProfile && (
                                         <AnalysisPanel 
                                             analysis={currentAnalysis} 
-                                            onBack={handleBackToAgentSelection} 
+                                            onBack={handleBackToSelection} 
                                             userProfile={userProfile} 
                                         />
                                     )}
