@@ -15,6 +15,7 @@ dist-ssr
 # Environment secrets
 .env
 server/.env
+server/data/
 
 # Editor directories and files
 .vscode/*

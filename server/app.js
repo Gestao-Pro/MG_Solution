@@ -7,6 +7,7 @@ import Stripe from 'stripe';
 import bodyParser from 'body-parser';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -561,25 +562,111 @@ app.get('/api/user/plan', requireAuth, async (req, res) => {
   }
 });
 
-// Email/password placeholder login (for demo only)
+// Email/password login with security check
 app.post('/api/auth/login', async (req, res) => {
   try {
     if (!AUTH_JWT_SECRET) return res.status(500).json({ error: 'AUTH_JWT_SECRET não configurado' });
     const { email, password } = req.body || {};
     if (!email || typeof email !== 'string') return res.status(400).json({ error: 'Email é obrigatório' });
+    if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Senha é obrigatória' });
 
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {},
-      create: { email },
-    });
+    let prismaAvailable = true;
+    try { await prisma.$queryRaw`SELECT 1`; } catch { prismaAvailable = false; }
+    let existingUser = null;
+    try {
+      existingUser = await prisma.user.findUnique({ where: { email } });
+    } catch {
+      prismaAvailable = false;
+    }
+
+    let user;
+
+    if (existingUser) {
+      if (!existingUser.password) {
+        return res.status(400).json({ error: 'Este email está vinculado ao Google Login ou não possui senha definida.' });
+      }
+
+      const isValid = await bcrypt.compare(password, existingUser.password);
+      if (!isValid) {
+        return res.status(401).json({ error: 'Senha incorreta.' });
+      }
+      user = existingUser;
+    } else {
+      if (!prismaAvailable) {
+        const db = ensureStoreShape();
+        const u = db.users[email];
+        if (!u || !u.passwordHash) {
+          return res.status(404).json({ error: 'Usuário não encontrado. Verifique o e-mail ou crie uma conta.' });
+        }
+        const isValid = await bcrypt.compare(password, u.passwordHash);
+        if (!isValid) {
+          return res.status(401).json({ error: 'Senha incorreta.' });
+        }
+        user = { id: email, email };
+      } else {
+        return res.status(404).json({ error: 'Usuário não encontrado. Verifique o e-mail ou crie uma conta.' });
+      }
+    }
 
     const now = Math.floor(Date.now() / 1000);
     const token = jwt.sign({ sub: user.id, email: user.email, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
     
     return res.json({ token });
   } catch (e) {
-    return res.status(500).json({ error: 'Falha ao autenticar' });
+    console.error('Login error:', e?.message || e);
+    return res.status(500).json({ error: 'Falha ao autenticar', detail: e?.message || String(e) });
+  }
+});
+
+// Email/password registration
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    if (!AUTH_JWT_SECRET) return res.status(500).json({ error: 'AUTH_JWT_SECRET não configurado' });
+    const { email, password } = req.body || {};
+    if (!email || typeof email !== 'string') return res.status(400).json({ error: 'Email é obrigatório' });
+    if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Senha é obrigatória' });
+
+    let prismaAvailable = true;
+    try { await prisma.$queryRaw`SELECT 1`; } catch { prismaAvailable = false; }
+    let existingUser = null;
+    try {
+      existingUser = await prisma.user.findUnique({ where: { email } });
+    } catch {
+      prismaAvailable = false;
+    }
+
+    if (existingUser) {
+      return res.status(409).json({ error: 'Este email já está cadastrado. Faça login.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    let user;
+    if (prismaAvailable) {
+      try {
+        user = await prisma.user.create({
+          data: { email, password: hashedPassword },
+        });
+      } catch {
+        prismaAvailable = false;
+      }
+    }
+    if (!user) {
+      const db = ensureStoreShape();
+      if (db.users[email]) {
+        return res.status(409).json({ error: 'Este email já está cadastrado. Faça login.' });
+      }
+      db.users[email] = { passwordHash: hashedPassword, plan: 'free', cycle: 'monthly' };
+      writeStore(db);
+      user = { id: email, email };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const token = jwt.sign({ sub: user.id, email: user.email, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
+    
+    return res.json({ token });
+  } catch (e) {
+    console.error('Register error:', e?.message || e);
+    return res.status(500).json({ error: 'Falha ao registrar usuário', detail: e?.message || String(e) });
   }
 });
 

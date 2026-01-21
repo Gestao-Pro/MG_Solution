@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { AGENTS, VIDEO_IDS, AGENT_AREAS } from '../constants';
 import { Agent } from '../types';
 import AnimatedElement from './AnimatedElement';
 import Avatar from './Avatar';
+import { Play, X } from 'lucide-react';
 
 const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const [showPreview, setShowPreview] = useState(false);
@@ -18,10 +19,16 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
     : false;
   const originParam = typeof window !== 'undefined' ? window.location.origin : '';
   const embedUrl = videoId
-    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${prefersReducedMotion ? 0 : 1}&controls=0&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${videoId}&enablejsapi=1&origin=${encodeURIComponent(originParam)}`
+    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${prefersReducedMotion ? 0 : 1}&controls=1&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${videoId}&enablejsapi=1&origin=${encodeURIComponent(originParam)}`
     : '';
 
   const handleEnter = () => {
+    // Verifica se o dispositivo suporta hover (mouse)
+    // Se não suportar (touch), não ativa no hover, exige clique
+    if (typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches) {
+      return;
+    }
+
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
@@ -81,8 +88,12 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
       tabIndex={0}
       aria-label={`Mostrar prévia do vídeo do agente ${agent.name}`}
     >
-      <div className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-slate-600 overflow-hidden">
+      <div className="relative w-24 h-24 rounded-full mx-auto mb-4 border-4 border-slate-600 overflow-hidden group-hover:border-indigo-500 transition-colors">
         <Avatar agent={agent} />
+        {/* Indicador de Play para Mobile/Touch */}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 md:hidden">
+           <Play className="w-8 h-8 text-white/90 drop-shadow-lg" fill="currentColor" />
+        </div>
       </div>
       <h3 className="text-xl font-bold text-white">{agent.name}</h3>
       <p className="text-indigo-400 text-sm font-medium mb-2">{agent.area}</p>
@@ -92,12 +103,24 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
         <div
           ref={popoverRef}
           onPointerLeave={handleLeave}
-          className={`absolute inset-0 -m-2 z-50 flex items-center justify-center transition-opacity duration-100 ease-out ${
+          className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 md:absolute md:inset-0 md:-m-2 md:z-50 md:bg-transparent md:p-0 transition-opacity duration-200 ease-out ${
             showPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
+          onClick={(e) => {
+             // Fecha ao clicar no fundo escuro em mobile
+             if (e.target === popoverRef.current) handleLeave();
+          }}
         >
-          <div className={`bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden px-2 pt-2 pb-2 transform transition-transform duration-200 ease-out ${showPreview ? 'scale-100' : 'scale-95'}`}
-               style={{ width: 'calc(100% + 24px)' }}>
+          <div className={`relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden p-2 transform transition-transform duration-200 ease-out w-full max-w-lg md:w-[calc(100%+24px)] ${showPreview ? 'scale-100' : 'scale-95'}`}>
+            
+            {/* Botão de fechar para Mobile */}
+            <button 
+              onClick={(e) => { e.stopPropagation(); handleLeave(); }}
+              className="absolute top-2 right-2 z-10 p-1 bg-black/50 rounded-full text-white md:hidden hover:bg-black/70"
+            >
+              <X size={20} />
+            </button>
+
             <div className="mx-auto" style={{ aspectRatio: '16 / 9' }}>
               <iframe
                 title={`Apresentação do agente ${agent.name}`}
@@ -111,11 +134,11 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
                 sandbox="allow-same-origin allow-scripts allow-popups allow-presentation"
               />
             </div>
-            <div className="flex items-center justify-between px-3 py-2">
+            <div className="flex items-center justify-between px-1 py-2 md:px-3">
               <span className="text-xs text-gray-300" aria-live="polite">Prévia</span>
               <button
                 type="button"
-                onClick={handleUnmute}
+                onClick={(e) => { e.stopPropagation(); handleUnmute(); }}
                 className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded"
                 aria-label="Ativar som do vídeo"
               >
@@ -126,7 +149,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
               <div className="absolute inset-0 flex items-center justify-center">
                 <button
                   type="button"
-                  onClick={handleToggleClick}
+                  onClick={(e) => { e.stopPropagation(); handleToggleClick(); }}
                   className="bg-black/60 text-white text-xs font-semibold py-1.5 px-3 rounded-full"
                 >
                   Assistir prévia
