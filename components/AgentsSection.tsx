@@ -12,6 +12,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const isTouch = typeof window !== 'undefined' && 'matchMedia' in window ? window.matchMedia('(hover: none)').matches : false;
 
   const videoId = VIDEO_IDS[agent.id];
   const prefersReducedMotion = typeof window !== 'undefined' && 'matchMedia' in window
@@ -44,6 +45,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   };
 
   const handleCardLeave: React.PointerEventHandler<HTMLDivElement> = (e) => {
+    if (isTouch) return;
     const nextTarget = e.relatedTarget as EventTarget | null;
     const nextNode = (typeof Node !== 'undefined' && nextTarget instanceof Node) ? nextTarget : null;
     if (nextNode && popoverRef.current?.contains(nextNode)) {
@@ -80,10 +82,10 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
     <div
       ref={cardRef}
       className="relative bg-slate-800/60 p-6 rounded-xl border border-slate-700 text-center transition-all duration-300 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-900/50 transform hover:-translate-y-2 h-full"
-      onPointerEnter={handleEnter}
-      onPointerLeave={handleCardLeave}
+      onPointerEnter={isTouch ? undefined : handleEnter}
+      onPointerLeave={isTouch ? undefined : handleCardLeave}
       onFocus={handleEnter}
-      onBlur={handleLeave}
+      onBlur={isTouch ? undefined : handleLeave}
       onClick={handleToggleClick}
       tabIndex={0}
       aria-label={`Mostrar prévia do vídeo do agente ${agent.name}`}
@@ -102,7 +104,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
       {videoId && (
         <div
           ref={popoverRef}
-          onPointerLeave={handleLeave}
+          onPointerLeave={isTouch ? undefined : handleLeave}
           className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 md:absolute md:inset-0 md:-m-2 md:z-50 md:bg-transparent md:p-0 transition-opacity duration-200 ease-out ${
             showPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
