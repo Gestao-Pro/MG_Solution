@@ -43,19 +43,32 @@ const Chatbot: React.FC = () => {
   
   const getBotResponse = (userInput: string): string => {
     const lowerInput = userInput.toLowerCase();
-    if (lowerInput.includes('preço') || lowerInput.includes('valor')) {
-      return "Para informações sobre preços e planos, por favor, clique no botão 'Comece Agora' e preencha o formulário de contato. Nossa equipe entrará em contato com uma proposta personalizada!";
+    const hasPlan = lowerInput.includes('plano') || lowerInput.includes('planos') || lowerInput.includes('starter') || lowerInput.includes('pro') || lowerInput.includes('premium');
+    const hasPrice = lowerInput.includes('preço') || lowerInput.includes('valor') || lowerInput.includes('preços') || lowerInput.includes('valores');
+    const hasAgents = lowerInput.includes('agentes') || lowerInput.includes('avatar') || lowerInput.includes('especialistas');
+    const hasCount = lowerInput.includes('quantos') || lowerInput.includes('quantidade') || lowerInput.includes('qtd');
+    const hasCycle = lowerInput.includes('mensal') || lowerInput.includes('anual') || lowerInput.includes('ano') || lowerInput.includes('mês');
+    const wantsChangePlan = lowerInput.includes('mudar') || lowerInput.includes('trocar') || lowerInput.includes('upgrade') || lowerInput.includes('downgrade') || lowerInput.includes('alterar');
+
+    if (hasPrice || hasPlan) {
+      return "Oferecemos 3 planos: Starter, Pro e Premium, com opções mensal e anual. Para ver valores e comparar benefícios, visite a seção 'Planos' ou clique em 'Comece Agora' para que nossa equipe envie uma proposta adequada ao seu contexto.";
     }
-    if (lowerInput.includes('agentes')) {
-      return "Temos agentes especialistas em Estratégia, Vendas, Marketing, Pessoas, Processos e Finanças. Cada um é treinado para resolver desafios específicos da sua área. Você pode conhecer todos na seção 'Agentes' da página.";
+    if (hasAgents && hasCount && lowerInput.includes('starter')) {
+      return "No plano Starter você tem acesso aos agentes essenciais da sua área. A quantidade varia conforme a área escolhida. Na seção 'Agentes' você vê quais estão habilitados para seu plano e pode testar cada um.";
+    }
+    if (wantsChangePlan && hasPlan) {
+      return "Sim, você pode mudar de plano. Se já é cliente, use a área de cobrança (Portal) para upgrade ou solicite pelo suporte. Se está começando, clique em 'Comece Agora' e informe o plano desejado.";
+    }
+    if (hasAgents) {
+      return "Temos agentes especialistas em Estratégia, Vendas, Marketing, Pessoas, Processos e Finanças. Cada um resolve desafios específicos da sua área. Conheça todos na seção 'Agentes' da página.";
     }
     if (lowerInput.includes('superboss')) {
-        return "Eu sou o SuperBoss! Minha função é analisar seu problema e distribuir as tarefas para os agentes mais qualificados, garantindo uma solução completa e eficiente."
+      return "Eu sou o SuperBoss! Analiso seu problema e distribuo tarefas aos agentes mais qualificados para entregar uma solução completa.";
     }
     if (lowerInput.includes('olá') || lowerInput.includes('oi')) {
-        return "Olá! É um prazer conversar com você. Tem alguma dúvida sobre a GestãoPro?"
+      return "Olá! É um prazer conversar com você. Tem alguma dúvida sobre planos, agentes ou como começar?";
     }
-    return "Desculpe, não entendi sua pergunta. Você poderia tentar reformular? Você pode perguntar sobre 'preços', 'agentes' ou sobre mim, o 'SuperBoss'.";
+    return "Desculpe, não entendi sua pergunta. Você pode perguntar sobre planos, preços, agentes ou sobre o SuperBoss.";
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -83,7 +96,13 @@ const Chatbot: React.FC = () => {
 
   return (
     <>
-      <div className={`fixed bottom-8 right-8 transition-all duration-300 ${isOpen ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
+      <div className={`fixed bottom-8 right-8 transition-all duration-300 ${isOpen ? 'opacity-0 scale-90' : 'opacity-100 scale-100'} relative`}>
+        {!isOpen && (
+          <div className="absolute top-1/2 -translate-y-1/2 right-[calc(100%+0.5rem)] bg-white/90 text-slate-900 text-xs font-semibold px-3 py-2 rounded-full shadow-lg backdrop-blur-sm animate-pulse pointer-events-none">
+            Tire suas dúvidas comigo
+            <span className="absolute right-[-0.25rem] top-1/2 -translate-y-1/2 w-2 h-2 bg-white/90 rotate-45 shadow-md"></span>
+          </div>
+        )}
         <button
           onClick={() => setIsOpen(true)}
           className="bg-slate-800 rounded-full w-20 h-20 flex items-center justify-center shadow-2xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 transform hover:scale-110 transition-all duration-300"
