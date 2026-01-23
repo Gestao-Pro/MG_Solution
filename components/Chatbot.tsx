@@ -99,9 +99,10 @@ const Chatbot: React.FC = () => {
       <div className={`fixed bottom-8 right-8 transition-all duration-300 ${isOpen ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
         <div className="relative">
           {!isOpen && (
-            <div className="absolute top-1/2 -translate-y-1/2 right-[calc(100%+0.5rem)] bg-white/90 text-slate-900 text-xs font-semibold px-3 py-2 rounded-full shadow-lg backdrop-blur-sm animate-pulse pointer-events-none">
-              Tire suas dúvidas comigo
-              <span className="absolute right-[-0.25rem] top-1/2 -translate-y-1/2 w-2 h-2 bg-white/90 rotate-45 shadow-md"></span>
+            <div className="absolute bottom-[calc(100%+1.25rem)] left-1/2 -translate-x-1/2 inline-block bg-gradient-to-r from-indigo-600 to-sky-500 text-white text-xs md:text-sm font-medium px-3 py-1 leading-snug rounded-xl shadow-2xl ring-1 ring-white/20 backdrop-blur-sm animate-pulse pointer-events-none text-center w-[240px] md:w-[120px]">
+              <span className="block whitespace-nowrap">Tire suas</span>
+              <span className="block whitespace-nowrap">dúvidas comigo</span>
+              <span className="absolute left-1/2 -translate-x-1/2 bottom-[-0.9rem] w-2 h-2 bg-indigo-600 rotate-45 shadow-md"></span>
             </div>
           )}
           <button
