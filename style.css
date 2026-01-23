@@ -19,3 +19,23 @@
   from { transform: scale(0.98); }
   to { transform: scale(1); }
 }
+
+.gp-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #0f172a;
+}
+.gp-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.gp-scroll::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 9999px;
+}
+.gp-scroll::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 9999px;
+  border: 2px solid #0f172a;
+}
+.gp-scroll::-webkit-scrollbar-thumb:hover {
+  background: #6366f1;
+}
