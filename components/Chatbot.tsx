@@ -96,20 +96,22 @@ const Chatbot: React.FC = () => {
 
   return (
     <>
-      <div className={`fixed bottom-8 right-8 transition-all duration-300 ${isOpen ? 'opacity-0 scale-90' : 'opacity-100 scale-100'} relative`}>
-        {!isOpen && (
-          <div className="absolute top-1/2 -translate-y-1/2 right-[calc(100%+0.5rem)] bg-white/90 text-slate-900 text-xs font-semibold px-3 py-2 rounded-full shadow-lg backdrop-blur-sm animate-pulse pointer-events-none">
-            Tire suas dúvidas comigo
-            <span className="absolute right-[-0.25rem] top-1/2 -translate-y-1/2 w-2 h-2 bg-white/90 rotate-45 shadow-md"></span>
-          </div>
-        )}
-        <button
-          onClick={() => setIsOpen(true)}
-          className="bg-slate-800 rounded-full w-20 h-20 flex items-center justify-center shadow-2xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 transform hover:scale-110 transition-all duration-300"
-          aria-label="Abrir chat"
-        >
-          <img src={SUPERBOSS_AVATAR_URL} alt="Abrir Chat" className="w-16 h-16 rounded-full object-cover" onError={setFallback} />
-        </button>
+      <div className={`fixed bottom-8 right-8 transition-all duration-300 ${isOpen ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
+        <div className="relative">
+          {!isOpen && (
+            <div className="absolute top-1/2 -translate-y-1/2 right-[calc(100%+0.5rem)] bg-white/90 text-slate-900 text-xs font-semibold px-3 py-2 rounded-full shadow-lg backdrop-blur-sm animate-pulse pointer-events-none">
+              Tire suas dúvidas comigo
+              <span className="absolute right-[-0.25rem] top-1/2 -translate-y-1/2 w-2 h-2 bg-white/90 rotate-45 shadow-md"></span>
+            </div>
+          )}
+          <button
+            onClick={() => setIsOpen(true)}
+            className="bg-slate-800 rounded-full w-20 h-20 flex items-center justify-center shadow-2xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 transform hover:scale-110 transition-all duration-300"
+            aria-label="Abrir chat"
+          >
+            <img src={SUPERBOSS_AVATAR_URL} alt="Abrir Chat" className="w-16 h-16 rounded-full object-cover" onError={setFallback} />
+          </button>
+        </div>
       </div>
 
       <div className={`fixed bottom-8 right-8 w-[calc(100%-4rem)] max-w-sm h-[70vh] max-h-[600px] bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
