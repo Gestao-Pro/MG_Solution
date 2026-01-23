@@ -99,7 +99,7 @@ const Chatbot: React.FC = () => {
       <div className={`fixed bottom-8 right-8 z-50 transition-all duration-300 ${isOpen ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
         <div className="relative">
           {!isOpen && (
-            <div className="absolute bottom-[calc(100%+1.25rem)] left-1/2 -translate-x-1/2 inline-block bg-gradient-to-r from-indigo-600 to-sky-500 text-white text-xs md:text-sm font-medium px-3 py-1 leading-snug rounded-xl shadow-2xl ring-1 ring-white/20 backdrop-blur-sm animate-pulse pointer-events-none text-center w-[240px] md:w-[130px]">
+            <div className="absolute bottom-[calc(100%+1.25rem)] left-1/2 -translate-x-1/2 inline-block bg-gradient-to-r from-indigo-600 to-sky-500 text-white text-xs md:text-sm font-medium px-3 py-1 leading-snug rounded-xl shadow-2xl ring-1 ring-white/20 backdrop-blur-sm animate-pulse pointer-events-none text-center w-[130px]">
               <span className="block whitespace-nowrap">Tire suas</span>
               <span className="block whitespace-nowrap">dúvidas comigo</span>
               <span className="absolute left-1/2 -translate-x-1/2 bottom-[-0.9rem] w-2 h-2 bg-indigo-600 rotate-45 shadow-md"></span>
