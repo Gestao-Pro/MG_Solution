@@ -54,6 +54,7 @@ const Chatbot: React.FC = () => {
   
   const getBotResponse = (userInput: string): string => {
     const lowerInput = userInput.toLowerCase();
+    const normalized = lowerInput.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const hasPlanWord = /\b(starter|pro|premium)\b/.test(lowerInput);
     const hasPlan = lowerInput.includes('plano') || lowerInput.includes('planos') || hasPlanWord;
     const hasPrice = lowerInput.includes('preço') || lowerInput.includes('valor') || lowerInput.includes('preços') || lowerInput.includes('valores');
@@ -83,6 +84,28 @@ const Chatbot: React.FC = () => {
     const asksPeople = lowerInput.includes('pessoas') || lowerInput.includes('rh') || lowerInput.includes('recrutamento') || lowerInput.includes('onboarding') || lowerInput.includes('cultura') || lowerInput.includes('desempenho') || lowerInput.includes('clima');
     const asksProcesses = lowerInput.includes('processos') || lowerInput.includes('sop') || lowerInput.includes('padronização') || lowerInput.includes('padronizacao') || lowerInput.includes('automação') || lowerInput.includes('automacao') || lowerInput.includes('workflow') || lowerInput.includes('fluxo');
     const asksFinance = lowerInput.includes('finanças') || lowerInput.includes('financas') || lowerInput.includes('financeiro') || lowerInput.includes('caixa') || lowerInput.includes('fluxo de caixa') || lowerInput.includes('dre') || lowerInput.includes('precificação') || lowerInput.includes('precificacao') || lowerInput.includes('orçamento') || lowerInput.includes('orcamento');
+    const hasShortGreeting =
+      normalized.includes('ola') ||
+      normalized.includes('oi') ||
+      normalized.includes('e ai') ||
+      normalized.includes('eai') ||
+      normalized.includes('tudo bem') ||
+      normalized.includes('bom dia') ||
+      normalized.includes('boa tarde') ||
+      normalized.includes('boa noite') ||
+      normalized.includes('salve') ||
+      normalized.includes('fala') ||
+      normalized.includes('opa') ||
+      normalized.includes('beleza') ||
+      normalized.includes('blz');
+    const wordCount = lowerInput.trim().split(/\s+/).length;
+    const onlyGreeting = hasShortGreeting && wordCount <= 4 && !(
+      hasPlan || hasPrice || hasAgents || hasCount || hasCycle || wantsChangePlan ||
+      asksBossRole || asksAgentFunctions || asksHelp || asksHowHelp || asksWhatGP ||
+      asksBenefits || asksPrivacy || asksIntegrations || asksTrial || asksCancel ||
+      asksSupport || asksLimits || asksSla || asksLanguages || asksTeam || asksRoi ||
+      asksStrategy || asksSales || asksMarketing || asksPeople || asksProcesses || asksFinance
+    );
 
     const buildAgentSummary = (): string => {
       const byArea: Record<string, { name: string; specialty: string }[]> = {};
@@ -177,8 +200,10 @@ const Chatbot: React.FC = () => {
     if (hasAgents) {
       return "Temos agentes especialistas em Estratégia, Vendas, Marketing, Pessoas, Processos e Finanças. Cada um resolve desafios específicos da sua área. Conheça todos na seção 'Agentes' da página.";
     }
-    if (lowerInput.includes('olá') || lowerInput.includes('oi')) {
-      return "Olá! É um prazer conversar com você. Tem alguma dúvida sobre planos, agentes ou como começar?";
+    if (onlyGreeting) {
+      const greetings = ["Olá!", "Oi!", "E aí!", "Tudo bem?"];
+      const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+      return `${randomGreeting} Em que posso ajudar hoje?`;
     }
     return "Desculpe, não entendi sua pergunta. Você pode perguntar sobre planos, preços, agentes ou sobre o SuperBoss.";
   };
