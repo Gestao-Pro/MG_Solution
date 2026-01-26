@@ -189,6 +189,7 @@ const App: React.FC = () => {
             localStorage.removeItem('userEmail');
             localStorage.removeItem('userPlan');
             localStorage.removeItem('userBillingCycle');
+            try { window.dispatchEvent(new CustomEvent('gp:plan-updated')); } catch {}
         } catch {}
 
         setUserProfile({ userName: 'Usuário', userRole: 'Analista' });

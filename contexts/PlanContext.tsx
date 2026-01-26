@@ -26,6 +26,28 @@ export const PlanProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCycleState(normalizedCycle);
     } catch {}
   }, []);
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const p = (localStorage.getItem('userPlan') || 'free').toLowerCase();
+        const c = (localStorage.getItem('userBillingCycle') || 'monthly').toLowerCase();
+        const np: Plan = (p === 'starter' || p === 'pro' || p === 'premium') ? (p as Plan) : 'free';
+        const nc: BillingCycle = c === 'yearly' ? 'yearly' : 'monthly';
+        setPlanState(np);
+        setCycleState(nc);
+      } catch {}
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (!e || !e.key) return;
+      if (e.key === 'userPlan' || e.key === 'userBillingCycle') sync();
+    };
+    window.addEventListener('gp:plan-updated', sync as EventListener);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('gp:plan-updated', sync as EventListener);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
 
   const setPlan = (p: Plan) => {
     setPlanState(p);
