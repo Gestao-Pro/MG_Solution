@@ -32,6 +32,12 @@ const STARTER_PRICE_YEARLY = process.env.STRIPE_PRICE_STARTER_YEARLY || process.
 const PRO_PRICE_YEARLY = process.env.STRIPE_PRICE_PRO_YEARLY || process.env.VITE_STRIPE_PRICE_PRO_YEARLY || '';
 const PREMIUM_PRICE_YEARLY = process.env.STRIPE_PRICE_PREMIUM_YEARLY || process.env.VITE_STRIPE_PRICE_PREMIUM_YEARLY || '';
 
+// Admin allowlist (comma-separated) to grant full access without payment
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.VITE_ADMIN_EMAILS || '')
+  .split(',')
+  .map(s => s.trim().toLowerCase())
+  .filter(Boolean);
+
 if (!STRIPE_SECRET_KEY) {
   console.warn('STRIPE_SECRET_KEY não definido. Configure variáveis de ambiente.');
 }
@@ -611,7 +617,17 @@ app.post('/api/auth/login', async (req, res) => {
     const now = Math.floor(Date.now() / 1000);
     const token = jwt.sign({ sub: user.id, email: user.email, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
     
-    return res.json({ token });
+    const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase());
+    try {
+      if (isAdmin) {
+        const db = ensureStoreShape();
+        db.users[email] = db.users[email] || {};
+        db.users[email].plan = 'premium';
+        db.users[email].cycle = 'yearly';
+        writeStore(db);
+      }
+    } catch {}
+    return res.json({ token, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
   } catch (e) {
     console.error('Login error:', e?.message || e);
     return res.status(500).json({ error: 'Falha ao autenticar', detail: e?.message || String(e) });
@@ -663,7 +679,17 @@ app.post('/api/auth/register', async (req, res) => {
     const now = Math.floor(Date.now() / 1000);
     const token = jwt.sign({ sub: user.id, email: user.email, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
     
-    return res.json({ token });
+    const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase());
+    try {
+      if (isAdmin) {
+        const db = ensureStoreShape();
+        db.users[email] = db.users[email] || {};
+        db.users[email].plan = 'premium';
+        db.users[email].cycle = 'yearly';
+        writeStore(db);
+      }
+    } catch {}
+    return res.json({ token, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
   } catch (e) {
     console.error('Register error:', e?.message || e);
     return res.status(500).json({ error: 'Falha ao registrar usuário', detail: e?.message || String(e) });
@@ -708,7 +734,17 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
 
     const now = Math.floor(Date.now() / 1000);
     const token = jwt.sign({ sub: user.id, email: user.email, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user });
+    const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase());
+    try {
+      if (isAdmin) {
+        const db = ensureStoreShape();
+        db.users[email] = db.users[email] || {};
+        db.users[email].plan = 'premium';
+        db.users[email].cycle = 'yearly';
+        writeStore(db);
+      }
+    } catch {}
+    res.json({ token, user, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
   } catch (e) {
     console.error('Google Auth Error:', e);
     res.status(500).json({ error: 'Falha na autenticação com Google', details: e.message });
