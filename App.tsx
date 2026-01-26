@@ -187,6 +187,8 @@ const App: React.FC = () => {
             localStorage.removeItem('imagenQuotaExhaustedUntil');
             localStorage.removeItem('authToken');
             localStorage.removeItem('userEmail');
+            localStorage.removeItem('userPlan');
+            localStorage.removeItem('userBillingCycle');
         } catch {}
 
         setUserProfile({ userName: 'Usuário', userRole: 'Analista' });

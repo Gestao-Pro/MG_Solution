@@ -26,12 +26,6 @@ export const loginWithEmail = async (email: string, password?: string): Promise<
   const data = await res.json();
   if (!data?.token) throw new Error('Token ausente na resposta');
   saveAuthToken(data.token);
-  try {
-    if (data?.isAdmin || (data?.plan === 'premium')) {
-      localStorage.setItem('userPlan', data?.plan || 'premium');
-      localStorage.setItem('userBillingCycle', data?.cycle || 'yearly');
-    }
-  } catch {}
   try { trackEvent('login_success', { method: 'email' }); } catch {}
   return data.token;
 };
@@ -49,12 +43,7 @@ export const registerWithEmail = async (email: string, password?: string): Promi
   const data = await res.json();
   if (!data?.token) throw new Error('Token ausente na resposta');
   saveAuthToken(data.token);
-  try {
-    if (data?.isAdmin || (data?.plan === 'premium')) {
-      localStorage.setItem('userPlan', data?.plan || 'premium');
-      localStorage.setItem('userBillingCycle', data?.cycle || 'yearly');
-    }
-  } catch {}
+  // Plano/ciclo apenas por Stripe ou quando isAdmin for true no Google login
   try { trackEvent('register_success', { method: 'email' }); } catch {}
   return data.token;
 };
@@ -78,9 +67,9 @@ export const loginWithGoogle = async (idToken: string): Promise<string> => {
     if (email) localStorage.setItem('userEmail', email);
   } catch {}
   try {
-    if (data?.isAdmin || (data?.plan === 'premium')) {
-      localStorage.setItem('userPlan', data?.plan || 'premium');
-      localStorage.setItem('userBillingCycle', data?.cycle || 'yearly');
+    if (data?.isAdmin === true) {
+      localStorage.setItem('userPlan', 'premium');
+      localStorage.setItem('userBillingCycle', 'yearly');
     }
   } catch {}
   return data.token;
