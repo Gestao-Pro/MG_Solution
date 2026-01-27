@@ -33,10 +33,9 @@ const STARTER_PRICE_YEARLY = process.env.STRIPE_PRICE_STARTER_YEARLY || process.
 const PRO_PRICE_YEARLY = process.env.STRIPE_PRICE_PRO_YEARLY || process.env.VITE_STRIPE_PRICE_PRO_YEARLY || '';
 const PREMIUM_PRICE_YEARLY = process.env.STRIPE_PRICE_PREMIUM_YEARLY || process.env.VITE_STRIPE_PRICE_PREMIUM_YEARLY || '';
 
-// Admin allowlist (comma-separated) to grant full access without payment
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .split(',')
-  .map(s => s.trim().toLowerCase())
+  .map(s => s.trim().replace(/^['"]+|['"]+$/g, '').toLowerCase())
   .filter(Boolean);
 
 if (!STRIPE_SECRET_KEY) {
