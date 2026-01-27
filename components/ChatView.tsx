@@ -106,44 +106,40 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (!event.target.files?.length) return;
         
-        // Convert FileList to array
-        const files = Array.from(event.target.files);
+        const isFile = (obj: unknown): obj is File =>
+            obj instanceof File || (!!obj && typeof (obj as any).name === 'string' && typeof (obj as any).type === 'string');
+        const toFiles = (list: FileList | null): File[] => list ? Array.from(list).filter(isFile) : [];
+        const files: File[] = toFiles(event.target.files);
+        if (files.length === 0) return;
         
-        // We'll process the first file to determine kind, but if it's images we can take multiple
-        const firstFile = files[0];
+        const firstFile: File = files[0];
         const kind = detectFileKind(firstFile);
         
         if (kind === 'image') {
-            // Filter only images
-            const newImages = files.filter(f => detectFileKind(f) === 'image');
+            const newImages: File[] = files.filter((f: File) => detectFileKind(f) === 'image');
             if (newImages.length > 0) {
-                // URLs managed by useEffect
                 setImageFiles(prev => [...prev, ...newImages]);
-                // Clear other types
                 setDataFile(null);
                 setDataFileName(null);
                 setDocumentFile(null);
                 setDocumentFileName(null);
             }
         } else if (kind === 'document') {
-            const file = firstFile; // Only one doc for now
+            const file: File = firstFile;
             setDocumentFile(file);
             setDocumentFileName(file.name);
             setImageFiles([]);
-            // URLs managed by useEffect
             setDataFile(null);
             setDataFileName(null);
         } else {
-            const file = firstFile; // Only one data file for now
+            const file: File = firstFile;
             setDataFile(file);
             setDataFileName(file.name);
             setImageFiles([]);
-            // URLs managed by useEffect
             setDocumentFile(null);
             setDocumentFileName(null);
         }
         
-        // Reset input so same file can be selected again if needed
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
@@ -164,15 +160,17 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
         event.stopPropagation();
         setIsDragging(false);
         
-        if (!event.dataTransfer?.files?.length) return;
-        const files = Array.from(event.dataTransfer.files);
-        const firstFile = files[0];
+        const isFile = (obj: unknown): obj is File =>
+            obj instanceof File || (!!obj && typeof (obj as any).name === 'string' && typeof (obj as any).type === 'string');
+        const toFiles = (list: FileList | null): File[] => list ? Array.from(list).filter(isFile) : [];
+        const files: File[] = toFiles(event.dataTransfer?.files || null);
+        if (files.length === 0) return;
+        const firstFile: File = files[0];
         const kind = detectFileKind(firstFile);
 
         if (kind === 'image') {
-            const newImages = files.filter(f => detectFileKind(f) === 'image');
+            const newImages: File[] = files.filter((f: File) => detectFileKind(f) === 'image');
              if (newImages.length > 0) {
-                // URLs managed by useEffect
                 setImageFiles(prev => [...prev, ...newImages]);
                 setDataFile(null);
                 setDataFileName(null);
@@ -183,14 +181,12 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
             setDocumentFile(firstFile);
             setDocumentFileName(firstFile.name);
             setImageFiles([]);
-            // URLs managed by useEffect
             setDataFile(null);
             setDataFileName(null);
         } else {
             setDataFile(firstFile);
             setDataFileName(firstFile.name);
             setImageFiles([]);
-            // URLs managed by useEffect
             setDocumentFile(null);
             setDocumentFileName(null);
         }
