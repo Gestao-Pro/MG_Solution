@@ -15,6 +15,8 @@ export interface Message {
   sender: 'user' | 'agent';
   agent?: Agent;
   imageUrl?: string;
+  imageUrls?: string[];
+  promptText?: string;
   dataFileName?: string;
   dataUrl?: string;
   documentFileName?: string;

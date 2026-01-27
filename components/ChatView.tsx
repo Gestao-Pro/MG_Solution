@@ -11,7 +11,7 @@ import Avatar from './Avatar';
 interface ChatViewProps {
     agent: Agent;
     messages: MessageType[];
-    onSendMessage: (message: string, imageFile?: File, dataFile?: File, documentFile?: File) => void;
+    onSendMessage: (message: string, imageFiles?: File[], dataFile?: File, documentFile?: File) => void;
     loading: boolean;
     onBack: () => void;
     onClearConversation: () => void;
@@ -19,8 +19,8 @@ interface ChatViewProps {
 
 const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loading, onBack, onClearConversation }) => {
     const [inputText, setInputText] = useState('');
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
     const [dataFile, setDataFile] = useState<File | null>(null);
     const [dataFileName, setDataFileName] = useState<string | null>(null);
     const [documentFile, setDocumentFile] = useState<File | null>(null);
@@ -38,14 +38,17 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
         }
     }, [transcript]);
 
+    // Automatically manage image preview URLs based on imageFiles
     useEffect(() => {
-        // Cleanup object URLs to prevent memory leaks
+        // Create new URLs for current files
+        const newUrls = imageFiles.map(file => URL.createObjectURL(file));
+        setImagePreviewUrls(newUrls);
+
+        // Cleanup function to revoke URLs when imageFiles changes or component unmounts
         return () => {
-            if (imagePreviewUrl) {
-                URL.revokeObjectURL(imagePreviewUrl);
-            }
+            newUrls.forEach(url => URL.revokeObjectURL(url));
         };
-    }, [imagePreviewUrl]);
+    }, [imageFiles]);
 
 
     const scrollToBottom = () => {
@@ -57,16 +60,16 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
     const handleSend = () => {
         // Avoid concurrent sends that can trigger API 429s
         if (loading) return;
-        if (inputText.trim() || imageFile || dataFile || documentFile) {
+        if (inputText.trim() || imageFiles.length > 0 || dataFile || documentFile) {
             onSendMessage(
                 inputText.trim(),
-                imageFile ?? undefined,
+                imageFiles.length > 0 ? imageFiles : undefined,
                 dataFile ?? undefined,
                 documentFile ?? undefined
             );
             setInputText('');
-            setImageFile(null);
-            setImagePreviewUrl(null);
+            setImageFiles([]);
+            // setImagePreviewUrls is handled by useEffect
             setDataFile(null);
             setDataFileName(null);
             setDocumentFile(null);
@@ -101,31 +104,47 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
     };
 
     const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        const kind = detectFileKind(file);
+        if (!event.target.files?.length) return;
+        
+        // Convert FileList to array
+        const files = Array.from(event.target.files);
+        
+        // We'll process the first file to determine kind, but if it's images we can take multiple
+        const firstFile = files[0];
+        const kind = detectFileKind(firstFile);
+        
         if (kind === 'image') {
-            setImageFile(file);
-            setImagePreviewUrl(URL.createObjectURL(file));
-            setDataFile(null);
-            setDataFileName(null);
-            setDocumentFile(null);
-            setDocumentFileName(null);
+            // Filter only images
+            const newImages = files.filter(f => detectFileKind(f) === 'image');
+            if (newImages.length > 0) {
+                // URLs managed by useEffect
+                setImageFiles(prev => [...prev, ...newImages]);
+                // Clear other types
+                setDataFile(null);
+                setDataFileName(null);
+                setDocumentFile(null);
+                setDocumentFileName(null);
+            }
         } else if (kind === 'document') {
+            const file = firstFile; // Only one doc for now
             setDocumentFile(file);
             setDocumentFileName(file.name);
-            setImageFile(null);
-            setImagePreviewUrl(null);
+            setImageFiles([]);
+            // URLs managed by useEffect
             setDataFile(null);
             setDataFileName(null);
         } else {
+            const file = firstFile; // Only one data file for now
             setDataFile(file);
             setDataFileName(file.name);
-            setImageFile(null);
-            setImagePreviewUrl(null);
+            setImageFiles([]);
+            // URLs managed by useEffect
             setDocumentFile(null);
             setDocumentFileName(null);
         }
+        
+        // Reset input so same file can be selected again if needed
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const handleDragOver = (event: React.DragEvent) => {
@@ -144,37 +163,42 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
         event.preventDefault();
         event.stopPropagation();
         setIsDragging(false);
-        const file = event.dataTransfer?.files?.[0];
-        if (!file) return;
-        // Reuse the same routing logic as handleFileSelect com detecção por extensão
-        const kind = detectFileKind(file);
+        
+        if (!event.dataTransfer?.files?.length) return;
+        const files = Array.from(event.dataTransfer.files);
+        const firstFile = files[0];
+        const kind = detectFileKind(firstFile);
+
         if (kind === 'image') {
-            setImageFile(file);
-            setImagePreviewUrl(URL.createObjectURL(file));
-            setDataFile(null);
-            setDataFileName(null);
-            setDocumentFile(null);
-            setDocumentFileName(null);
+            const newImages = files.filter(f => detectFileKind(f) === 'image');
+             if (newImages.length > 0) {
+                // URLs managed by useEffect
+                setImageFiles(prev => [...prev, ...newImages]);
+                setDataFile(null);
+                setDataFileName(null);
+                setDocumentFile(null);
+                setDocumentFileName(null);
+            }
         } else if (kind === 'document') {
-            setDocumentFile(file);
-            setDocumentFileName(file.name);
-            setImageFile(null);
-            setImagePreviewUrl(null);
+            setDocumentFile(firstFile);
+            setDocumentFileName(firstFile.name);
+            setImageFiles([]);
+            // URLs managed by useEffect
             setDataFile(null);
             setDataFileName(null);
         } else {
-            setDataFile(file);
-            setDataFileName(file.name);
-            setImageFile(null);
-            setImagePreviewUrl(null);
+            setDataFile(firstFile);
+            setDataFileName(firstFile.name);
+            setImageFiles([]);
+            // URLs managed by useEffect
             setDocumentFile(null);
             setDocumentFileName(null);
         }
     };
     
-    const handleRemoveImage = () => {
-        setImageFile(null);
-        setImagePreviewUrl(null);
+    const handleRemoveImage = (index: number) => {
+        setImageFiles(prev => prev.filter((_, i) => i !== index));
+        // URLs managed by useEffect
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -286,16 +310,20 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
             >
-                 {imagePreviewUrl && (
-                    <div className="relative w-24 h-24 mb-2 p-1 border border-gray-300 dark:border-gray-600 rounded-md">
-                        <img src={imagePreviewUrl} alt="Preview" className="w-full h-full object-cover rounded" />
-                        <IconButton
-                            icon={X}
-                            onClick={handleRemoveImage}
-                            tooltip="Remover Imagem"
-                            size="sm"
-                            className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full"
-                        />
+                 {imagePreviewUrls.length > 0 && (
+                    <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
+                        {imagePreviewUrls.map((url, index) => (
+                            <div key={index} className="relative w-24 h-24 p-1 border border-gray-300 dark:border-gray-600 rounded-md flex-shrink-0">
+                                <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover rounded" />
+                                <IconButton
+                                    icon={X}
+                                    onClick={() => handleRemoveImage(index)}
+                                    tooltip="Remover Imagem"
+                                    size="sm"
+                                    className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full"
+                                />
+                            </div>
+                        ))}
                     </div>
                 )}
                 {dataFileName && (
@@ -329,6 +357,7 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileSelect}
+                        multiple // Enable multiple file selection
                         accept={(agent.canHandleImages ? 'image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp' : '') +
                                 (agent.canHandleDataFiles ? (agent.canHandleImages ? ',' : '') + '.csv,.tsv,.json,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/json' : '') +
                                 (agent.canHandleDocuments ? (agent.canHandleImages || agent.canHandleDataFiles ? ',' : '') + '.pdf,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document' : '')
@@ -344,7 +373,7 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
                                 if (!loading) handleSend();
                             }
                         }}
-                        placeholder={isListening ? "Ouvindo..." : imageFile ? "Adicione um comentário para a imagem..." : documentFile ? "Adicione um comentário para o documento..." : `Converse com ${agent.name}...`}
+                        placeholder={isListening ? "Ouvindo..." : imageFiles.length > 0 ? `Adicione um comentário para as ${imageFiles.length} imagens...` : documentFile ? "Adicione um comentário para o documento..." : `Converse com ${agent.name}...`}
                         className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-3 pl-12 pr-28 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         rows={1}
                         style={{maxHeight: '100px'}}
@@ -373,7 +402,7 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
                          <IconButton
                             icon={Send}
                             onClick={handleSend}
-                            disabled={(!inputText.trim() && !imageFile && !dataFile && !documentFile) || loading}
+                            disabled={(!inputText.trim() && imageFiles.length === 0 && !dataFile && !documentFile) || loading}
                             className="bg-green-600 hover:bg-green-700 disabled:bg-gray-500"
                             tooltip="Enviar Mensagem"
                          />

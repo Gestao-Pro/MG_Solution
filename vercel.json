@@ -33,7 +33,7 @@
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com; img-src 'self' data: https:; font-src 'self' data:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.canva.com https://accounts.google.com; connect-src 'self' https: https://generativelanguage.googleapis.com https://api.stripe.com https://accounts.google.com; media-src 'self' https: data: blob:;"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com; img-src 'self' data: https: blob:; font-src 'self' data:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://www.canva.com https://accounts.google.com; connect-src 'self' https: https://generativelanguage.googleapis.com https://api.stripe.com https://accounts.google.com; media-src 'self' https: data: blob:;"
         }
       ]
     }

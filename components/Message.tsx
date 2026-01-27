@@ -5,7 +5,7 @@ import { Message as MessageType } from '../types';
 import Avatar from './Avatar';
 import AudioPlayer from './AudioPlayer';
 import IconButton from './IconButton';
-import { Volume2, Download } from 'lucide-react';
+import { Volume2, Download, Eye, EyeOff } from 'lucide-react';
 
 interface MessageProps {
     message: MessageType;
@@ -16,6 +16,7 @@ interface MessageProps {
 const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => {
     const isUser = message.sender === 'user';
     const [copied, setCopied] = useState(false);
+    const [showPrompt, setShowPrompt] = useState(false);
 
     const handleCopy = () => {
         if (message.text) {
@@ -44,7 +45,65 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                 </div>
             )}
             <div className={`rounded-lg p-3 max-w-lg shadow ${isUser ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}>
-                {message.imageUrl && (
+                {message.imageUrls && message.imageUrls.length > 0 ? (
+                    message.imageUrls.length === 1 ? (
+                         <div className="relative group">
+                            <img
+                                src={message.imageUrls[0]}
+                                alt="Conteúdo da mensagem"
+                                className="rounded-md max-w-full h-auto mb-2"
+                            />
+                            {!isUser && (
+                                <div className="absolute bottom-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                                    <IconButton
+                                        icon={Download}
+                                        onClick={() => {
+                                            const link = document.createElement('a');
+                                            link.href = message.imageUrls![0];
+                                            link.download = `gestaopro-img-${Date.now()}.png`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                        }}
+                                        tooltip="Baixar Imagem"
+                                        size="sm"
+                                        className="bg-black bg-opacity-50 text-white hover:bg-opacity-75"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
+                            {message.imageUrls.map((url, index) => (
+                                <div key={index} className="relative group flex-shrink-0">
+                                    <img
+                                        src={url}
+                                        alt={`Conteúdo da mensagem ${index}`}
+                                        className="rounded-md h-32 w-auto object-cover"
+                                    />
+                                    {!isUser && (
+                                        <div className="absolute bottom-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                                            <IconButton
+                                                icon={Download}
+                                                onClick={() => {
+                                                    const link = document.createElement('a');
+                                                    link.href = url;
+                                                    link.download = `gestaopro-img-${Date.now()}-${index}.png`;
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    document.body.removeChild(link);
+                                                }}
+                                                tooltip="Baixar Imagem"
+                                                size="sm"
+                                                className="bg-black bg-opacity-50 text-white hover:bg-opacity-75"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )
+                ) : message.imageUrl ? (
                     <div className="relative group">
                         <img
                             src={message.imageUrl}
@@ -63,7 +122,7 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                             </div>
                         )}
                     </div>
-                )}
+                ) : null}
                 {message.dataFileName && (
                     <div className="mb-2 text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
                         <FileSpreadsheet className="w-4 h-4" />
@@ -99,6 +158,40 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                     </div>
                 )}
                 {message.text && <div className="whitespace-pre-wrap">{message.text}</div>}
+                {!isUser && message.promptText && (
+                    <div className="mt-2">
+                        {!showPrompt ? (
+                            <IconButton
+                                icon={Eye}
+                                onClick={() => setShowPrompt(true)}
+                                tooltip="Mostrar Prompt"
+                                size="sm"
+                                className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-200"
+                            />
+                        ) : (
+                            <div>
+                                <div className="mb-2 text-xs text-gray-600 dark:text-gray-300">Prompt utilizado:</div>
+                                <div className="p-2 rounded bg-gray-100 dark:bg-gray-800 text-xs break-words">{message.promptText}</div>
+                                <div className="mt-1 flex justify-end space-x-1">
+                                    <IconButton
+                                        icon={Copy}
+                                        onClick={() => navigator.clipboard.writeText(message.promptText || '')}
+                                        tooltip="Copiar Prompt"
+                                        size="sm"
+                                        className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-200"
+                                    />
+                                    <IconButton
+                                        icon={EyeOff}
+                                        onClick={() => setShowPrompt(false)}
+                                        tooltip="Ocultar Prompt"
+                                        size="sm"
+                                        className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-200"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {!isUser && message.agent && message.text && (
                     <div className="mt-2 flex items-center justify-end">

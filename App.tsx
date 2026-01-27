@@ -382,7 +382,7 @@ const App: React.FC = () => {
 
     const handleSendMessage = useCallback(async (
         messageText: string,
-        imageFile?: File,
+        imageFiles?: File[],
         dataFile?: File,
         documentFile?: File,
         options?: { chartType?: 'bar' | 'line' | 'pie'; labelColumnIndex?: number; valueColumnIndex?: number }
@@ -407,14 +407,16 @@ const App: React.FC = () => {
             'application/json',
             'text/tab-separated-values'
         ];
-        if (imageFile) {
-            if (imageFile.size > MAX_IMAGE_SIZE) {
-                addToast('Imagem muito grande (máx. 4MB).', 'error');
-                return;
-            }
-            if (!allowedImageTypes.includes(imageFile.type)) {
-                addToast('Formato de imagem não suportado.', 'error');
-                return;
+        if (imageFiles && imageFiles.length > 0) {
+            for (const imageFile of imageFiles) {
+                if (imageFile.size > MAX_IMAGE_SIZE) {
+                    addToast(`Imagem ${imageFile.name} muito grande (máx. 4MB).`, 'error');
+                    return;
+                }
+                if (!allowedImageTypes.includes(imageFile.type)) {
+                    addToast(`Formato da imagem ${imageFile.name} não suportado.`, 'error');
+                    return;
+                }
             }
         }
         if (dataFile) {
@@ -446,7 +448,7 @@ const App: React.FC = () => {
             id: Date.now().toString(),
             text: messageText,
             sender: 'user',
-            imageUrl: imageFile ? URL.createObjectURL(imageFile) : undefined,
+            imageUrls: imageFiles ? imageFiles.map(f => URL.createObjectURL(f)) : undefined,
             dataFileName: dataFile ? dataFile.name : undefined,
             dataUrl: dataFile ? URL.createObjectURL(dataFile) : undefined,
             documentFileName: documentFile ? documentFile.name : undefined,
@@ -495,13 +497,15 @@ const App: React.FC = () => {
                     incrementMonthlySuperBossCount();
                 }
             } else {
-                let imagePayload = undefined;
-                if (imageFile && agent.canHandleImages) {
-                    const base64Data = await fileToBase64(imageFile);
-                    imagePayload = {
-                        data: base64Data.split(',')[1],
-                        mimeType: imageFile.type,
-                    };
+                let imagePayloads = undefined;
+                if (imageFiles && imageFiles.length > 0 && agent.canHandleImages) {
+                    imagePayloads = await Promise.all(imageFiles.map(async (file) => {
+                        const base64Data = await fileToBase64(file);
+                        return {
+                            data: base64Data.split(',')[1],
+                            mimeType: file.type,
+                        };
+                    }));
                 }
 
                 let chartData = null;
@@ -527,13 +531,14 @@ const App: React.FC = () => {
                     }
                 }
 
-                const { text, imageUrl } = await generateChatResponse(agent, userProfile, chats[currentAgentId], messageText, imagePayload, false, chartData ?? undefined, documentContent ?? undefined);
+                const { text, imageUrl, promptText } = await generateChatResponse(agent, userProfile, chats[currentAgentId], messageText, imagePayloads, false, chartData ?? undefined, documentContent ?? undefined);
                 setLoading(false);
 
                 const agentMessage: Message = {
                     id: `${Date.now()}-agent`,
                     text: text || '',
                     imageUrl: imageUrl,
+                    promptText: promptText,
                     sender: 'agent',
                     agent: agent
                 };
