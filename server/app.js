@@ -862,13 +862,26 @@ app.get('/api/user/plan', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Email não encontrado no token' });
     }
 
+    const lower = String(email).toLowerCase();
+    const isAdmin = ADMIN_EMAILS.includes(lower);
+    if (isAdmin) {
+      return res.json({ plan: 'premium', cycle: 'yearly' });
+    }
+
     const user = await prisma.user.findUnique({
       where: { email },
       include: { subscription: true },
     });
 
     if (!user) {
-      // This case should ideally not happen if requireAuth and login work correctly
+      // Fallback leve ao store local para ambientes sem DB ou usuário não presente
+      try {
+        const db = ensureStoreShape();
+        const u = db.users[email];
+        if (u && (u.plan || u.cycle)) {
+          return res.json({ plan: u.plan || 'free', cycle: u.cycle || 'monthly' });
+        }
+      } catch {}
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
@@ -878,6 +891,14 @@ app.get('/api/user/plan', requireAuth, async (req, res) => {
         cycle: user.subscription.billingCycle,
       });
     } else {
+      // Fallback: checa o store local
+      try {
+        const db = ensureStoreShape();
+        const u = db.users[email];
+        if (u && (u.plan || u.cycle)) {
+          return res.json({ plan: u.plan || 'free', cycle: u.cycle || 'monthly' });
+        }
+      } catch {}
       res.json({ plan: 'free', cycle: 'monthly' });
     }
   } catch (e) {
