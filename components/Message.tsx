@@ -50,6 +50,34 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
             document.body.removeChild(link);
         }
     };
+    const handleDownloadPng = () => {
+        if (!message.imageUrl) return;
+        const url = message.imageUrl;
+        const isSvg = /^data:image\\/svg\\+xml/i.test(url) || /\\.svg($|\\?)/i.test(url);
+        if (!isSvg) return handleDownload();
+        const img = new Image();
+        img.onload = () => {
+            const w = img.naturalWidth || 1024;
+            const h = img.naturalHeight || 1024;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `gestaopro-logo-${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(a.href);
+                document.body.removeChild(a);
+            }, 'image/png');
+        };
+        img.src = url;
+    };
 
     return (
         <div className={`flex items-start gap-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -133,6 +161,15 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                                     size="sm"
                                     className="bg-black bg-opacity-50 text-white hover:bg-opacity-75"
                                 />
+                                {/^data:image\/svg\+xml/i.test(message.imageUrl) && (
+                                    <IconButton
+                                        icon={Download}
+                                        onClick={handleDownloadPng}
+                                        tooltip="Baixar PNG"
+                                        size="sm"
+                                        className="ml-1 bg-black bg-opacity-50 text-white hover:bg-opacity-75"
+                                    />
+                                )}
                             </div>
                         )}
                     </div>

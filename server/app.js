@@ -625,10 +625,26 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
             const svgResp = await textModel.generateContent({
               contents: [{ role: 'user', parts: [{ text: `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Produce only SVG.` }] }]
             });
-            const svgText = String(svgResp?.response?.text() || '').trim();
-            if (svgText && svgText.includes('<svg')) {
-              const base64 = Buffer.from(svgText, 'utf-8').toString('base64');
-              return res.json({ text: 'Logomarca gerada!', imageUrl: `data:image/svg+xml;base64,${base64}`, promptText: svgText });
+            const raw = String(svgResp?.response?.text() || '').trim();
+            const cleaned = raw
+              .replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''))
+              .replace(/^\s*Here is .*?:\s*/i, '');
+            const match = cleaned.match(/<svg[\s\S]*?<\/svg>/i);
+            const svgOnly = match ? match[0] : '';
+            if (svgOnly && svgOnly.includes('<svg')) {
+              let finalSvg = svgOnly;
+              // Ensure namespace and basic attributes
+              if (!/xmlns=/.test(finalSvg)) {
+                finalSvg = finalSvg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+              }
+              // Remove scripts/styles not needed
+              finalSvg = finalSvg.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+              // Ensure size for rasterization/display
+              if (!/width=/.test(finalSvg) || !/height=/.test(finalSvg)) {
+                finalSvg = finalSvg.replace('<svg', '<svg width="1024" height="1024"');
+              }
+              const base64 = Buffer.from(finalSvg, 'utf-8').toString('base64');
+              return res.json({ text: 'Logomarca gerada!', imageUrl: `data:image/svg+xml;base64,${base64}`, promptText: finalSvg });
             }
           } catch (svgErr) {
             console.error("Falha ao gerar SVG via Gemini:", svgErr?.message || svgErr);
