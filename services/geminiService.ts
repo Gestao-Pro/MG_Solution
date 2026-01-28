@@ -178,7 +178,7 @@ export const generateChatResponse = async (
   useStreaming?: boolean,
   chartData?: any,
   documentContent?: any
-): Promise<{ text: string; imageUrl?: string; promptText?: string }> => {
+): Promise<{ text: string; imageUrl?: string; imageUrls?: string[]; promptText?: string }> => {
   console.log('generateChatResponse input:', { agent, userProfile, chatHistory, message, imagePayloads, useStreaming, chartData, documentContent });
   try {
     const { question, stage, greetingPrefix } = getNextAgentQuestion(agent, userProfile, Array.isArray(chatHistory) ? chatHistory : [], message);
@@ -205,7 +205,12 @@ export const generateChatResponse = async (
       throw new Error(err?.error || 'Falha ao gerar resposta do agente.');
     }
     const data = await resp.json();
-    return { text: String(data?.text || '').trim(), imageUrl: data?.imageUrl, promptText: data?.promptText };
+    return {
+      text: String(data?.text || '').trim(),
+      imageUrl: data?.imageUrl,
+      imageUrls: Array.isArray(data?.imageUrls) ? data.imageUrls : undefined,
+      promptText: data?.promptText
+    };
   } catch (e: any) {
     console.warn('Falha generateChatResponse; usando fallback simples.', e);
     const errorMsg = String(e?.message || e);

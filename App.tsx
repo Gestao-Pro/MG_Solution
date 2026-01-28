@@ -531,13 +531,14 @@ const App: React.FC = () => {
                     }
                 }
 
-                const { text, imageUrl, promptText } = await generateChatResponse(agent, userProfile, chats[currentAgentId], messageText, imagePayloads, false, chartData ?? undefined, documentContent ?? undefined);
+                const { text, imageUrl, imageUrls, promptText } = await generateChatResponse(agent, userProfile, chats[currentAgentId], messageText, imagePayloads, false, chartData ?? undefined, documentContent ?? undefined);
                 setLoading(false);
 
                 const agentMessage: Message = {
                     id: `${Date.now()}-agent`,
                     text: text || '',
                     imageUrl: imageUrl,
+                    imageUrls: imageUrls,
                     promptText: promptText,
                     sender: 'agent',
                     agent: agent

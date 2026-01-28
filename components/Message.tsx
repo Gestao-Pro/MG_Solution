@@ -129,9 +129,23 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                                             <IconButton
                                                 icon={Download}
                                                 onClick={() => {
+                                                    const isDataUrl = /^data:/i.test(url);
+                                                    let ext = 'png';
+                                                    if (isDataUrl) {
+                                                        const mime = url.slice(5).split(';')[0];
+                                                        if (mime === 'image/svg+xml') ext = 'svg';
+                                                        else if (mime === 'image/jpeg') ext = 'jpg';
+                                                        else if (mime === 'image/webp') ext = 'webp';
+                                                        else if (mime === 'image/png') ext = 'png';
+                                                    } else {
+                                                        if (/\.svg($|\?)/i.test(url)) ext = 'svg';
+                                                        else if (/\.jpe?g($|\?)/i.test(url)) ext = 'jpg';
+                                                        else if (/\.webp($|\?)/i.test(url)) ext = 'webp';
+                                                        else if (/\.png($|\?)/i.test(url)) ext = 'png';
+                                                    }
                                                     const link = document.createElement('a');
                                                     link.href = url;
-                                                    link.download = `gestaopro-img-${Date.now()}-${index}.png`;
+                                                    link.download = `gestaopro-img-${Date.now()}-${index}.${ext}`;
                                                     document.body.appendChild(link);
                                                     link.click();
                                                     document.body.removeChild(link);

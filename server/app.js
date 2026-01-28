@@ -631,28 +631,16 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
         const wantsTextOnImage = wantsText || !!brandName;
         if (wantsLogo) {
           try {
-            const textModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: 'Output ONLY valid SVG markup with viewBox "0 0 1024 1024". No HTML or Markdown.' });
-            const svgPrompt = brandName
-              ? `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Include the brand name "${brandName}" as a wordmark using <text> with a clean sans-serif font. Use viewBox "0 0 1024 1024". Produce only SVG.`
-              : `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Use viewBox "0 0 1024 1024". Produce only SVG.`;
-            const svgResp = await textModel.generateContent({
-              contents: [{ role: 'user', parts: [{ text: svgPrompt }] }]
+            const textModel = genAI.getGenerativeModel({
+              model: 'gemini-2.5-flash',
+              systemInstruction: 'Output ONLY valid SVG markup with viewBox "0 0 1024 1024". No HTML or Markdown.'
             });
-            const raw = String(svgResp?.response?.text() || '').trim();
-            const cleaned = raw
-              .replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''))
-              .replace(/^\s*Here is .*?:\s*/i, '');
-            const match = cleaned.match(/<svg[\s\S]*?<\/svg>/i);
-            const svgOnly = match ? match[0] : '';
-            if (svgOnly && svgOnly.includes('<svg')) {
-              let finalSvg = svgOnly;
-              // Ensure namespace and basic attributes
+            const sanitizeSvg = (svgIn) => {
+              let finalSvg = String(svgIn || '');
               if (!/xmlns=/.test(finalSvg)) {
                 finalSvg = finalSvg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
               }
-              // Remove scripts/styles not needed
               finalSvg = finalSvg.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
-              // Ensure size for rasterization/display
               if (!/width=/.test(finalSvg) || !/height=/.test(finalSvg)) {
                 finalSvg = finalSvg.replace('<svg', '<svg width="1024" height="1024"');
               }
@@ -660,10 +648,50 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
                 finalSvg = finalSvg.replace('<svg', '<svg viewBox="0 0 1024 1024"');
               }
               if (brandName && !finalSvg.includes(brandName) && !/<text[\s\S]*?>/i.test(finalSvg)) {
-                finalSvg = finalSvg.replace('</svg>', `<text x="50%" y="92%" text-anchor="middle" fill="#1f2937" font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif" font-weight="700" font-size="84">${brandName}</text></svg>`);
+                finalSvg = finalSvg.replace(
+                  '</svg>',
+                  `<text x="50%" y="92%" text-anchor="middle" fill="#1f2937" font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif" font-weight="700" font-size="84">${brandName}</text></svg>`
+                );
               }
-              const base64 = Buffer.from(finalSvg, 'utf-8').toString('base64');
-              return res.json({ text: 'Logomarca gerada!', imageUrl: `data:image/svg+xml;base64,${base64}`, promptText: finalSvg });
+              return finalSvg;
+            };
+            const basePrompt = `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Use viewBox "0 0 1024 1024". Produce only SVG.`;
+            const withName = brandName ? ` Include the brand name "${brandName}" as a wordmark.` : '';
+            const makePrompt = (layout) => {
+              let layoutInstr = '';
+              if (layout === 'above') {
+                layoutInstr = ' Place the symbol centered with the wordmark below it (stacked). Balanced spacing, grid-aligned.';
+              } else if (layout === 'right') {
+                layoutInstr = ' Place the symbol on the left and the wordmark to the right (horizontal lockup). Aligned baselines.';
+              } else if (layout === 'monogram') {
+                layoutInstr = ' Create a monogram combining symbol and wordmark letters into a compact geometric mark.';
+              } else if (layout === 'wordmark') {
+                layoutInstr = ' Create a clean wordmark-only version focusing on typography.';
+              }
+              return `${basePrompt}${withName} ${layoutInstr}`;
+            };
+            const layouts = ['above', 'right', 'monogram', 'wordmark'];
+            const imageUrls = [];
+            for (const layout of layouts) {
+              const svgPrompt = makePrompt(layout);
+              const svgResp = await textModel.generateContent({
+                contents: [{ role: 'user', parts: [{ text: svgPrompt }] }]
+              });
+              const raw = String(svgResp?.response?.text() || '').trim();
+              const cleaned = raw
+                .replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''))
+                .replace(/^\s*Here is .*?:\s*/i, '');
+              const match = cleaned.match(/<svg[\s\S]*?<\/svg>/i);
+              const svgOnly = match ? match[0] : '';
+              if (svgOnly && svgOnly.includes('<svg')) {
+                const finalSvg = sanitizeSvg(svgOnly);
+                const base64 = Buffer.from(finalSvg, 'utf-8').toString('base64');
+                imageUrls.push(`data:image/svg+xml;base64,${base64}`);
+              }
+            }
+            if (imageUrls.length >= 1) {
+              const summary = `Logomarca gerada com ${imageUrls.length} variações: símbolo acima, à direita, monograma e wordmark.`;
+              return res.json({ text: summary, imageUrls, promptText: `Variações: acima|direita|monograma|wordmark` });
             }
           } catch (svgErr) {
             console.error("Falha ao gerar SVG via Gemini:", svgErr?.message || svgErr);
@@ -731,16 +759,27 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
             console.log(`Prompt gerado para imagem: ${englishPrompt}`);
             
              const seed = Math.floor(Math.random() * 1000000);
-             const primaryUrl = `https://pollinations.ai/p/${encodeURIComponent(englishPromptClean)}?model=flux&seed=${seed}&width=1024&height=1024`;
-             const altUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&nologo=true&seed=${seed}&width=1024&height=1024`;
-            
+             const makePollinationsUrl = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&nologo=true&seed=${s}&width=1024&height=1024`;
              const responseText = `Imagem gerada!`;
              
-             try {
-               const imageDataUrl = await fetchImageAsDataUrl(altUrl);
-               return res.json({ text: responseText, imageUrl: imageDataUrl, promptText: englishPromptClean });
-             } catch {
-               return res.json({ text: responseText, imageUrl: altUrl, promptText: englishPromptClean });
+             if (wantsLogo) {
+               const seeds = [seed, seed + 1, seed + 2, seed + 3];
+               const urls = seeds.map(s => makePollinationsUrl(s));
+               try {
+                 const settled = await Promise.allSettled(urls.map(u => fetchImageAsDataUrl(u)));
+                 const imageUrls = settled.map((r, i) => (r.status === 'fulfilled' ? r.value : urls[i]));
+                 return res.json({ text: `${responseText} (variações)`, imageUrls, promptText: englishPromptClean });
+               } catch {
+                 return res.json({ text: `${responseText} (variações)`, imageUrls: urls, promptText: englishPromptClean });
+               }
+             } else {
+               const url = makePollinationsUrl(seed);
+               try {
+                 const imageDataUrl = await fetchImageAsDataUrl(url);
+                 return res.json({ text: responseText, imageUrl: imageDataUrl, promptText: englishPromptClean });
+               } catch {
+                 return res.json({ text: responseText, imageUrl: url, promptText: englishPromptClean });
+               }
              }
             
         } catch (imgError) {
