@@ -127,21 +127,23 @@ const fetchImageAsDataUrl = (url, maxRedirects = 3) => new Promise((resolve, rej
         res.on('data', (d) => chunks.push(d));
         res.on('end', () => {
           const buffer = Buffer.concat(chunks);
-          const mime = contentType.split(';')[0].trim();
-          const head = buffer.slice(0, 16);
-          const headTxt = head.toString('utf8').toLowerCase();
-          const isHtmlLike = headTxt.includes('<!doctype') || headTxt.includes('<html') || headTxt.includes('<head') || headTxt.includes('<body');
-          const sig = [buffer[0], buffer[1], buffer[2], buffer[3]];
-          const isPng = mime.includes('png') && sig[0] === 0x89 && sig[1] === 0x50 && sig[2] === 0x4e && sig[3] === 0x47;
-          const isJpeg = (mime.includes('jpeg') || mime.includes('jpg')) && sig[0] === 0xff && sig[1] === 0xd8;
-          const isWebp = mime.includes('webp') && sig[0] === 0x52 && sig[1] === 0x49 && sig[2] === 0x46 && sig[3] === 0x46;
-          const isGif = mime.includes('gif') && sig[0] === 0x47 && sig[1] === 0x49 && sig[2] === 0x46 && sig[3] === 0x38;
-          if (isHtmlLike) {
-            reject(new Error('Resposta não-imagem (HTML)'));
-            return;
+          if (buffer.length < 100) {
+              reject(new Error(`Buffer muito pequeno para ser uma imagem válida: ${buffer.length} bytes`));
+              return;
           }
-          if (!(isPng || isJpeg || isWebp || isGif)) {
-            // Aceita outros mime image/* mesmo sem assinatura conhecida
+          const bufferStr = buffer.toString('utf8', 0, Math.min(buffer.length, 200));
+          if (bufferStr.includes('<html') || bufferStr.includes('<!doctype') || bufferStr.includes('<body')) {
+              reject(new Error(`Conteúdo parece ser HTML, não imagem.`));
+              return;
+          }
+          const mime = contentType.split(';')[0].trim();
+          const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+          const isJpeg = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+          const isGif = buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38;
+          const isWebp = buffer.length >= 12 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+          if (!isPng && !isJpeg && !isGif && !isWebp && !contentType.startsWith('image/svg+xml')) {
+              reject(new Error(`Conteúdo não é um formato de imagem reconhecido ou SVG: ${contentType}`));
+              return;
           }
           const base64 = buffer.toString('base64');
           resolve(`data:${mime};base64,${base64}`);
@@ -755,36 +757,79 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
               }
             }
             if (imgPart && imgPart.data) {
-              const mime = imgPart.mimeType || 'image/png';
-              const dataUrl = `data:${mime};base64,${imgPart.data}`;
-              const responseText = `Imagem gerada!`;
-              return res.json({ text: responseText, imageUrl: dataUrl, promptText: usedPrompt });
+              // Adicionar verificação de tamanho mínimo para evitar imagens "pretas" ou vazias
+              if (imgPart.data.length < 1000) { // Um valor arbitrário, pode ser ajustado
+                console.warn("Imagem Gemini raster gerada é muito pequena, tratando como falha para fallback.");
+                // Não retorna, permitindo que o código caia no bloco catch ou continue para o fallback
+              } else {
+                const mime = imgPart.mimeType || 'image/png';
+                const dataUrl = `data:${mime};base64,${imgPart.data}`;
+                const responseText = `Imagem gerada!`;
+                return res.json({ text: responseText, imageUrl: dataUrl, promptText: usedPrompt });
+              }
             }
         } catch (imgGenErr) {
             console.error("Falha ao gerar imagem via Gemini:", imgGenErr?.message || imgGenErr);
         }
         
         try {
-            const promptModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: wantsTextOnImage ? 'You are an expert prompt engineer. Output ONLY the prompt in English for an image with overlay wordmark aligned to the user request. No markdown.' : 'You are an expert prompt engineer. Output ONLY the prompt in English. No markdown.' });
+            const promptModel = genAI.getGenerativeModel({
+                model: 'gemini-2.5-flash',
+                systemInstruction: wantsTextOnImage
+                    ? 'You are an expert prompt engineer. Your task is to generate a detailed image generation prompt in English. Focus ONLY on the visual description of the image, incorporating the brand name as an overlay wordmark and the specified color palette. DO NOT include literal phrases like "with the palette" or "create a logo for" in the output prompt. The output should be ONLY the prompt text, no markdown, no conversational elements.'
+                    : 'You are an expert prompt engineer. Your task is to generate a detailed image generation prompt in English. Focus ONLY on the visual description of the image, incorporating the specified color palette. DO NOT include literal phrases like "with the palette" or "create a logo for" in the output prompt. The output should be ONLY the prompt text, no markdown, no conversational elements.',
+            });
             
-            const promptParts = [{ text: `Create a detailed image generation prompt in English for: ${message}` }];
+            let cleanedMessage = String(message).trim();
+
+            // Remover a parte da paleta do message
+            const paletteMatch = String(message).match(/(?:paleta|cores)\s*:\s*([#0-9a-fA-F,\s]+)/i);
+            if (paletteMatch && paletteMatch[0]) {
+              cleanedMessage = cleanedMessage.replace(paletteMatch[0], '').trim();
+            }
+
+            // Remover o brandName e "para o/a" do message
+            if (brandName) {
+              const brandNameRegex = new RegExp(`["“”'‘’]?${brandName}["“”'‘’]?`, 'gi');
+              cleanedMessage = cleanedMessage.replace(brandNameRegex, '').trim();
+              cleanedMessage = cleanedMessage.replace(/\bpara\s+(?:o|a|os|as)?\s*/gi, '').trim();
+            }
+
+            // Remover a frase "Crie uma logo para"
+            cleanedMessage = cleanedMessage.replace(/crie uma logo para/gi, '').trim();
+
+            // Se o cleanedMessage ficar vazio, usar um default
+            if (!cleanedMessage) {
+              cleanedMessage = 'a professional logo';
+            }
+
+            let promptPartsForModel = [];
             if (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) {
-              promptParts.unshift({ text: `You must preserve identity from the reference image. Subject is female. Avoid any male features. Output ONLY the prompt text.` });
+              promptPartsForModel.push({ text: `You must preserve identity from the reference image. Subject is female. Avoid any male features. Output ONLY the prompt text.` });
               const ref = imagePayloads[0];
               if (ref?.data && ref?.mimeType) {
-                promptParts.push({ inlineData: { data: ref.data, mimeType: ref.mimeType } });
+                promptPartsForModel.push({ inlineData: { data: ref.data, mimeType: ref.mimeType } });
               }
             }
+            promptPartsForModel.push({ text: `Create a detailed image generation prompt in English for: ${cleanedMessage}.` });
+            if (brandName) {
+              promptPartsForModel.push({ text: `The brand name is "${brandName}".` });
+            }
+            if (paletteSuffix) {
+              promptPartsForModel.push({ text: `Use the following ${paletteSuffix}.` });
+            }
+
             const promptResp = await promptModel.generateContent({
-                contents: [{ role: 'user', parts: promptParts }]
+                contents: [{ role: 'user', parts: promptPartsForModel }]
             });
             
              let englishPrompt = promptResp.response.text().trim();
              englishPrompt = englishPrompt.replace(/^Here is a prompt: /i, '').replace(/`/g, '');
-             const negatives = 'male, man, beard, moustache, stubble';
-             const overlaySuffix = wantsTextOnImage ? ` ${brandName ? `include overlay wordmark "${brandName}",` : 'include overlay title and captions,'} high legibility, crisp typography, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
+             const generalNegativeConstraints = `no watermark, no banners, no QR code`;
+             const textNegativeConstraint = wantsTextOnImage ? '' : 'no text,';
+             const finalOverlaySuffix = `${textNegativeConstraint} ${generalNegativeConstraints}`;
              const identitySuffix2 = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` female, woman, identity preserved from reference` : '';
-             const englishPromptClean = `${englishPrompt},${identitySuffix2}, negative prompt: (${negatives}),${overlaySuffix}`;
+             const englishPromptClean = `${englishPrompt},${identitySuffix2}, negative prompt: (${negatives}),${finalOverlaySuffix}`;
             
             console.log(`Prompt gerado para imagem: ${englishPrompt}`);
             
