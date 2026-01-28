@@ -27,10 +27,24 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
     };
     const handleDownload = () => {
         if (message.imageUrl) {
+            const url = message.imageUrl;
+            const isDataUrl = /^data:/i.test(url);
+            let ext = 'png';
+            if (isDataUrl) {
+                const mime = url.slice(5).split(';')[0];
+                if (mime === 'image/svg+xml') ext = 'svg';
+                else if (mime === 'image/jpeg') ext = 'jpg';
+                else if (mime === 'image/webp') ext = 'webp';
+                else if (mime === 'image/png') ext = 'png';
+            } else {
+                if (/\\.svg($|\\?)/i.test(url)) ext = 'svg';
+                else if (/\\.jpe?g($|\\?)/i.test(url)) ext = 'jpg';
+                else if (/\\.webp($|\\?)/i.test(url)) ext = 'webp';
+                else if (/\\.png($|\\?)/i.test(url)) ext = 'png';
+            }
             const link = document.createElement('a');
-            link.href = message.imageUrl;
-            // Provide a generic filename for the download
-            link.download = `gestaopro-criativo-${Date.now()}.png`;
+            link.href = url;
+            link.download = `gestaopro-criativo-${Date.now()}.${ext}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);

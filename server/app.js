@@ -602,11 +602,15 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
       attachmentLines.push(`Conteúdo do documento anexado (resumo): ${sanitize(documentContent)}`);
     }
 
-    // Verificamos se o usuário está pedindo explicitamente para GERAR UMA IMAGEM
-    const isImageGenerationRequest = message.toLowerCase().includes('crie uma imagem') || 
-                                     message.toLowerCase().includes('gerar imagem') ||
-                                     message.toLowerCase().includes('create an image') ||
-                                     message.toLowerCase().includes('generate an image');
+    // Verificamos se o usuário está pedindo explicitamente para GERAR UMA IMAGEM ou uma LOGOMARCA (SVG)
+    const mLower = message.toLowerCase();
+    const isImageGenerationRequest = (
+      mLower.includes('crie uma imagem') ||
+      mLower.includes('gerar imagem') ||
+      mLower.includes('create an image') ||
+      mLower.includes('generate an image') ||
+      /logo|logomarca|logo marca|logotipo|identidade visual|branding|marca/.test(mLower)
+    );
 
     if (isImageGenerationRequest) {
         console.log("Pedido de geração de imagem detectado. Tentando Gemini 2.5 Flash Image; fallback Pollinations.");
