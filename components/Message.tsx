@@ -79,6 +79,55 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
         };
         img.src = url;
     };
+    const handleDownloadPngFromUrl = (url: string) => {
+        const lower = url.toLowerCase();
+        const isSvg = lower.startsWith('data:image/svg+xml') || /\.svg(\?|$)/i.test(url);
+        if (!isSvg) {
+            const link = document.createElement('a');
+            const isDataUrl = /^data:/i.test(url);
+            let ext = 'png';
+            if (isDataUrl) {
+                const mime = url.slice(5).split(';')[0];
+                if (mime === 'image/svg+xml') ext = 'svg';
+                else if (mime === 'image/jpeg') ext = 'jpg';
+                else if (mime === 'image/webp') ext = 'webp';
+                else if (mime === 'image/png') ext = 'png';
+            } else {
+                if (/\.svg($|\?)/i.test(url)) ext = 'svg';
+                else if (/\.jpe?g($|\?)/i.test(url)) ext = 'jpg';
+                else if (/\.webp($|\?)/i.test(url)) ext = 'webp';
+                else if (/\.png($|\?)/i.test(url)) ext = 'png';
+            }
+            link.href = url;
+            link.download = `gestaopro-img-${Date.now()}.${ext}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            return;
+        }
+        const img = new Image();
+        img.onload = () => {
+            const w = img.naturalWidth || 1024;
+            const h = img.naturalHeight || 1024;
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `gestaopro-img-${Date.now()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(a.href);
+                document.body.removeChild(a);
+            }, 'image/png');
+        };
+        img.src = url;
+    };
 
     return (
         <div className={`flex items-start gap-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -129,31 +178,25 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                                             <IconButton
                                                 icon={Download}
                                                 onClick={() => {
-                                                    const isDataUrl = /^data:/i.test(url);
-                                                    let ext = 'png';
-                                                    if (isDataUrl) {
-                                                        const mime = url.slice(5).split(';')[0];
-                                                        if (mime === 'image/svg+xml') ext = 'svg';
-                                                        else if (mime === 'image/jpeg') ext = 'jpg';
-                                                        else if (mime === 'image/webp') ext = 'webp';
-                                                        else if (mime === 'image/png') ext = 'png';
-                                                    } else {
-                                                        if (/\.svg($|\?)/i.test(url)) ext = 'svg';
-                                                        else if (/\.jpe?g($|\?)/i.test(url)) ext = 'jpg';
-                                                        else if (/\.webp($|\?)/i.test(url)) ext = 'webp';
-                                                        else if (/\.png($|\?)/i.test(url)) ext = 'png';
-                                                    }
-                                                    const link = document.createElement('a');
-                                                    link.href = url;
-                                                    link.download = `gestaopro-img-${Date.now()}-${index}.${ext}`;
-                                                    document.body.appendChild(link);
-                                                    link.click();
-                                                    document.body.removeChild(link);
+                                                    handleDownloadPngFromUrl(url);
                                                 }}
                                                 tooltip="Baixar Imagem"
                                                 size="sm"
                                                 className="bg-black bg-opacity-50 text-white hover:bg-opacity-75"
                                             />
+                                            {(() => {
+                                                const lower = url.toLowerCase();
+                                                const isSvg = lower.startsWith('data:image/svg+xml') || /\.svg(\?|$)/i.test(url);
+                                                return isSvg;
+                                            })() && (
+                                                <IconButton
+                                                    icon={Download}
+                                                    onClick={() => handleDownloadPngFromUrl(url)}
+                                                    tooltip="Baixar PNG"
+                                                    size="sm"
+                                                    className="ml-1 bg-black bg-opacity-50 text-white hover:bg-opacity-75"
+                                                />
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -176,7 +219,12 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                                     size="sm"
                                     className="bg-black bg-opacity-50 text-white hover:bg-opacity-75"
                                 />
-                                {/^data:image\/svg\+xml/i.test(message.imageUrl) && (
+                                {(() => {
+                                    const url = message.imageUrl || '';
+                                    const lower = url.toLowerCase();
+                                    const isSvg = lower.startsWith('data:image/svg+xml') || /\.svg(\?|$)/i.test(url);
+                                    return isSvg;
+                                })() && (
                                     <IconButton
                                         icon={Download}
                                         onClick={handleDownloadPng}
