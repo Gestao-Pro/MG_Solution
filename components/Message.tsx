@@ -165,16 +165,17 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                             )}
                         </div>
                     ) : (
-                        <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
+                        <div className="grid grid-cols-2 gap-2 mb-2">
                             {message.imageUrls.map((url, index) => (
-                                <div key={index} className="relative group flex-shrink-0">
+                                <div key={index} className="relative group w-full bg-gray-50 dark:bg-gray-800 rounded-md overflow-hidden">
                                     <img
                                         src={url}
-                                        alt={`Conteúdo da mensagem ${index}`}
-                                        className="rounded-md h-32 w-auto object-cover"
+                                        alt={`Variação de logo ${index + 1}`}
+                                        className="w-full h-auto object-contain p-2"
+                                        style={{ minHeight: '150px' }}
                                     />
                                     {!isUser && (
-                                        <div className="absolute bottom-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                                        <div className="absolute bottom-2 right-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex gap-1">
                                             <IconButton
                                                 icon={Download}
                                                 onClick={() => {

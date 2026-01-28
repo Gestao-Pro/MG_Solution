@@ -704,23 +704,31 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
             };
             const layouts = ['above', 'right', 'monogram', 'wordmark'];
             const imageUrls = [];
-            for (const layout of layouts) {
-              const svgPrompt = makePrompt(layout);
-              const svgResp = await textModel.generateContent({
-                contents: [{ role: 'user', parts: [{ text: svgPrompt }] }]
-              });
-              const raw = String(svgResp?.response?.text() || '').trim();
-              const cleaned = raw
-                .replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''))
-                .replace(/^\s*Here is .*?:\s*/i, '');
-              const match = cleaned.match(/<svg[\s\S]*?<\/svg>/i);
-              const svgOnly = match ? match[0] : '';
-              if (svgOnly && svgOnly.includes('<svg')) {
-                const finalSvg = sanitizeSvg(svgOnly);
-                const base64 = Buffer.from(finalSvg, 'utf-8').toString('base64');
-                imageUrls.push(`data:image/svg+xml;base64,${base64}`);
+            const generateLayout = async (layout) => {
+              try {
+                const svgPrompt = makePrompt(layout);
+                const svgResp = await textModel.generateContent({
+                  contents: [{ role: 'user', parts: [{ text: svgPrompt }] }]
+                });
+                const raw = String(svgResp?.response?.text() || '').trim();
+                const cleaned = raw
+                  .replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''))
+                  .replace(/^\s*Here is .*?:\s*/i, '');
+                const match = cleaned.match(/<svg[\s\S]*?<\/svg>/i);
+                const svgOnly = match ? match[0] : '';
+                if (svgOnly && svgOnly.includes('<svg')) {
+                  const finalSvg = sanitizeSvg(svgOnly);
+                  const base64 = Buffer.from(finalSvg, 'utf-8').toString('base64');
+                  return `data:image/svg+xml;base64,${base64}`;
+                }
+              } catch (err) {
+                console.error(`Erro ao gerar layout ${layout}:`, err.message);
               }
-            }
+              return null;
+            };
+
+            const results = await Promise.all(layouts.map(layout => generateLayout(layout)));
+            imageUrls.push(...results.filter(Boolean));
             if (imageUrls.length >= 1) {
               const summary = `Logomarca gerada com ${imageUrls.length} variações: símbolo acima, à direita, monograma e wordmark.`;
               return res.json({ text: summary, imageUrls, imageUrl: imageUrls[0], promptText: `Variações: acima|direita|monograma|wordmark` });
