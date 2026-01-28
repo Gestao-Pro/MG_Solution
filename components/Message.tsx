@@ -53,7 +53,8 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
     const handleDownloadPng = () => {
         if (!message.imageUrl) return;
         const url = message.imageUrl;
-        const isSvg = /^data:image\\/svg\\+xml/i.test(url) || /\\.svg($|\\?)/i.test(url);
+        const lower = url.toLowerCase();
+        const isSvg = lower.startsWith('data:image/svg+xml') || /\.svg(\?|$)/i.test(url);
         if (!isSvg) return handleDownload();
         const img = new Image();
         img.onload = () => {
