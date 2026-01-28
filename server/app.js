@@ -962,6 +962,19 @@ app.post('/api/auth/login', async (req, res) => {
         db.users[email].plan = 'premium';
         db.users[email].cycle = 'yearly';
         writeStore(db);
+        try {
+          const adminEmail = (user.email || '').toLowerCase();
+          const dbUser = await prisma.user.upsert({
+            where: { email: adminEmail },
+            update: {},
+            create: { email: adminEmail }
+          });
+          await prisma.subscription.upsert({
+            where: { userId: dbUser.id },
+            update: { plan: 'premium', billingCycle: 'yearly', status: 'active' },
+            create: { userId: dbUser.id, plan: 'premium', billingCycle: 'yearly', status: 'active' }
+          });
+        } catch {}
       }
     } catch {}
     return res.json({ token, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
@@ -1024,6 +1037,19 @@ app.post('/api/auth/register', async (req, res) => {
         db.users[email].plan = 'premium';
         db.users[email].cycle = 'yearly';
         writeStore(db);
+        try {
+          const adminEmail = (user.email || '').toLowerCase();
+          const dbUser = await prisma.user.upsert({
+            where: { email: adminEmail },
+            update: {},
+            create: { email: adminEmail }
+          });
+          await prisma.subscription.upsert({
+            where: { userId: dbUser.id },
+            update: { plan: 'premium', billingCycle: 'yearly', status: 'active' },
+            create: { userId: dbUser.id, plan: 'premium', billingCycle: 'yearly', status: 'active' }
+          });
+        } catch {}
       }
     } catch {}
     return res.json({ token, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
@@ -1079,6 +1105,19 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
         db.users[email].plan = 'premium';
         db.users[email].cycle = 'yearly';
         writeStore(db);
+        try {
+          const adminEmail = (user.email || '').toLowerCase();
+          const dbUser = await prisma.user.upsert({
+            where: { email: adminEmail },
+            update: {},
+            create: { email: adminEmail }
+          });
+          await prisma.subscription.upsert({
+            where: { userId: dbUser.id },
+            update: { plan: 'premium', billingCycle: 'yearly', status: 'active' },
+            create: { userId: dbUser.id, plan: 'premium', billingCycle: 'yearly', status: 'active' }
+          });
+        } catch {}
       }
     } catch {}
     res.json({ token, user, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
