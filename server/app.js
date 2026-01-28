@@ -637,10 +637,10 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
     // Verificamos se o usuário está pedindo explicitamente para GERAR UMA IMAGEM ou uma LOGOMARCA (SVG)
     const mLower = message.toLowerCase();
     const isImageGenerationRequest = (
-      mLower.includes('crie uma imagem') ||
-      mLower.includes('gerar imagem') ||
-      mLower.includes('create an image') ||
-      mLower.includes('generate an image') ||
+      /crie.*?imagem/i.test(mLower) ||
+      /gerar.*?imagem/i.test(mLower) ||
+      /create.*?image/i.test(mLower) ||
+      /generate.*?image/i.test(mLower) ||
       /logo|logomarca|logo marca|logotipo|identidade visual|branding|marca/.test(mLower)
     );
 
@@ -665,7 +665,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
           try {
             const textModel = genAI.getGenerativeModel({
               model: 'gemini-2.5-flash',
-              systemInstruction: 'Output ONLY valid SVG markup with viewBox "0 0 1024 1024". No HTML or Markdown.'
+              systemInstruction: 'Output ONLY valid SVG markup with viewBox "0 0 1024 1024". No HTML or Markdown. If including a slogan or wordmark, ensure it fits within the 1024px width by wrapping text into multiple <tspan> lines or reducing font size. Center text horizontally.'
             });
             const sanitizeSvg = (svgIn) => {
               let finalSvg = String(svgIn || '');
@@ -888,6 +888,9 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
              }
              return res.json({ text: `Imagem gerada com base no seu pedido, mas não foi possível obter o binário da imagem.`, imageUrl: undefined, promptText: fallbackPrompt });
         }
+        
+        // Return de segurança para garantir que não caia no chat de texto
+        return res.status(500).json({ error: "Falha na geração de imagem." });
     }
 
     let result = null;
@@ -918,7 +921,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
           summarizeHistory(chatHistory) ? `Histórico recente:\n${summarizeHistory(chatHistory)}` : '',
           attachmentLines.length ? attachmentLines.join('\n') : '',
           `Mensagem do usuário: ${sanitize(message)}`,
-          `Instruções de resposta: Responda em português. Se o usuário pedir para CRIAR/GERAR uma imagem, explique que como modelo de linguagem você cria o PROMPT PERFEITO para ferramentas como Midjourney/DALL-E/Imagen, pois a geração direta de pixels via chat ainda é experimental nesta interface. Dê o prompt em bloco de código.`
+          `Instruções de resposta: Responda em português. Seja objetivo e profissional.`
         ].filter(Boolean).join('\n\n');
 
         const currentUserParts = [{ text: currentContextual }];
