@@ -13,11 +13,12 @@ interface ChatViewProps {
     messages: MessageType[];
     onSendMessage: (message: string, imageFiles?: File[], dataFile?: File, documentFile?: File) => void;
     loading: boolean;
+    loadingText?: string;
     onBack: () => void;
     onClearConversation: () => void;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loading, onBack, onClearConversation }) => {
+const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loading, loadingText, onBack, onClearConversation }) => {
     const [inputText, setInputText] = useState('');
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
@@ -290,9 +291,20 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
                         <div className="flex items-center space-x-2">
                            <div className="w-10 h-10"><Avatar agent={agent} /></div>
                            <div className="bg-white dark:bg-gray-700 rounded-lg p-4 max-w-lg flex items-center shadow space-x-2">
-                                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></span>
+                                {loadingText ? (
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></span>
+                                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{loadingText}</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

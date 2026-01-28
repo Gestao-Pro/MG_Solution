@@ -5,7 +5,7 @@ import { Message as MessageType } from '../types';
 import Avatar from './Avatar';
 import AudioPlayer from './AudioPlayer';
 import IconButton from './IconButton';
-import { Volume2, Download, Eye, EyeOff } from 'lucide-react';
+import { Volume2, Download, Eye, EyeOff, Image as ImageIcon } from 'lucide-react';
 
 interface MessageProps {
     message: MessageType;
@@ -179,9 +179,14 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                                             <IconButton
                                                 icon={Download}
                                                 onClick={() => {
-                                                    handleDownloadPngFromUrl(url);
+                                                    const link = document.createElement('a');
+                                                    link.href = url;
+                                                    link.download = `gestaopro-logo-${Date.now()}.${url.toLowerCase().includes('svg') ? 'svg' : 'png'}`;
+                                                    document.body.appendChild(link);
+                                                    link.click();
+                                                    document.body.removeChild(link);
                                                 }}
-                                                tooltip="Baixar Imagem"
+                                                tooltip={url.toLowerCase().includes('svg') ? "Baixar Original (SVG)" : "Baixar Imagem"}
                                                 size="sm"
                                                 className="bg-black bg-opacity-50 text-white hover:bg-opacity-75"
                                             />
@@ -191,9 +196,9 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                                                 return isSvg;
                                             })() && (
                                                 <IconButton
-                                                    icon={Download}
+                                                    icon={ImageIcon}
                                                     onClick={() => handleDownloadPngFromUrl(url)}
-                                                    tooltip="Baixar PNG"
+                                                    tooltip="Baixar como PNG"
                                                     size="sm"
                                                     className="ml-1 bg-black bg-opacity-50 text-white hover:bg-opacity-75"
                                                 />

@@ -702,7 +702,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
               }
               return `${basePrompt}${withName} ${layoutInstr}`;
             };
-            const layouts = ['above', 'right', 'monogram', 'wordmark'];
+            const layouts = ['above', 'right'];
             const imageUrls = [];
             const generateLayout = async (layout) => {
               try {

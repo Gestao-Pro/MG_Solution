@@ -59,6 +59,7 @@ const App: React.FC = () => {
     const [activeAgentId, setActiveAgentId] = useState<AgentId | null>(null);
     const [activeArea, setActiveArea] = useState<AgentArea>('Estratégia');
     const [loading, setLoading] = useState(false);
+    const [loadingText, setLoadingText] = useState<string | undefined>(undefined);
     const [chats, setChats] = useState<{ [key: AgentId]: Message[] }>({});
     const [view, setView] = useState<'agent-selection' | 'chat' | 'analysis' | 'history'>('agent-selection');
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(!hasOnboarded);
@@ -456,6 +457,15 @@ const App: React.FC = () => {
         };
 
         setChats(prev => ({ ...prev, [currentAgentId]: [...prev[currentAgentId], userMessage] }));
+        
+        const lowerMsg = messageText.toLowerCase();
+        const isImageGen = /crie.*?imagem|gerar.*?imagem|create.*?image|generate.*?image|logo|logomarca|identidade visual/.test(lowerMsg);
+        if (isImageGen) {
+             setLoadingText("Criando imagem...");
+        } else {
+             setLoadingText(undefined);
+        }
+        
         setLoading(true);
 
         try {
@@ -465,6 +475,7 @@ const App: React.FC = () => {
                     const limit = getMonthlySuperBossLimit(plan, cycle);
                     const used = getMonthlySuperBossCount();
                     setLoading(false);
+                    setLoadingText(undefined);
                     const bossMessage: Message = {
                         id: `${Date.now()}-boss-limit`,
                         text: limit === 0
@@ -533,6 +544,7 @@ const App: React.FC = () => {
 
                 const { text, imageUrl, imageUrls, promptText } = await generateChatResponse(agent, userProfile, chats[currentAgentId], messageText, imagePayloads, false, chartData ?? undefined, documentContent ?? undefined);
                 setLoading(false);
+                setLoadingText(undefined);
 
                 const agentMessage: Message = {
                     id: `${Date.now()}-agent`,
@@ -547,6 +559,7 @@ const App: React.FC = () => {
             }
         } catch (error) {
             setLoading(false);
+            setLoadingText(undefined);
             console.error("Error communicating with Gemini API:", error);
             const code = (error as any)?.code ?? (error as any)?.error?.code;
             const status = (error as any)?.status ?? (error as any)?.error?.status;
@@ -685,6 +698,7 @@ const App: React.FC = () => {
                                             messages={chats[activeAgent.id] || []}
                                             onSendMessage={handleSendMessage}
                                             loading={loading}
+                                            loadingText={loadingText}
                                             onBack={handleBackToSelection}
                                             onClearConversation={() => handleClearConversation(activeAgent.id)}
                                         />
