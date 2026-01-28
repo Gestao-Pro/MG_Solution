@@ -100,25 +100,40 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Utilitário: baixa uma imagem e retorna como data URL base64
-const fetchImageAsDataUrl = (url) => new Promise((resolve, reject) => {
+// Utilitário: baixa uma imagem e retorna como data URL base64 (com headers e redireções)
+const fetchImageAsDataUrl = (url, maxRedirects = 3) => new Promise((resolve, reject) => {
   try {
-    https.get(url, (res) => {
-      const contentType = String(res.headers['content-type'] || '');
-      if (!contentType.startsWith('image/')) {
-        reject(new Error(`Conteúdo não é imagem: ${contentType}`));
-        res.resume();
-        return;
+    const opts = {
+      headers: {
+        'Accept': 'image/*,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0 Safari/537.36',
       }
-      const chunks = [];
-      res.on('data', (d) => chunks.push(d));
-      res.on('end', () => {
-        const buffer = Buffer.concat(chunks);
-        const mime = contentType.split(';')[0].trim();
-        const base64 = buffer.toString('base64');
-        resolve(`data:${mime};base64,${base64}`);
-      });
-    }).on('error', (e) => reject(e));
+    };
+    const handle = (currentUrl, redirectsRemaining) => {
+      https.get(currentUrl, opts, (res) => {
+        const status = res.statusCode || 200;
+        if ([301, 302, 303, 307, 308].includes(status) && res.headers.location && redirectsRemaining > 0) {
+          const nextUrl = res.headers.location.startsWith('http') ? res.headers.location : new URL(res.headers.location, currentUrl).toString();
+          res.resume();
+          return handle(nextUrl, redirectsRemaining - 1);
+        }
+        const contentType = String(res.headers['content-type'] || '');
+        if (!contentType.startsWith('image/')) {
+          reject(new Error(`Conteúdo não é imagem: ${contentType}`));
+          res.resume();
+          return;
+        }
+        const chunks = [];
+        res.on('data', (d) => chunks.push(d));
+        res.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          const mime = contentType.split(';')[0].trim();
+          const base64 = buffer.toString('base64');
+          resolve(`data:${mime};base64,${base64}`);
+        });
+      }).on('error', (e) => reject(e));
+    };
+    handle(url, maxRedirects);
   } catch (e) { reject(e); }
 });
 
@@ -759,40 +774,59 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
             console.log(`Prompt gerado para imagem: ${englishPrompt}`);
             
              const seed = Math.floor(Math.random() * 1000000);
-             const makePollinationsUrl = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&nologo=true&seed=${s}&width=1024&height=1024`;
+             const makePollinationsUrl = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&seed=${s}&width=1024&height=1024`;
+             const makeAltUrl = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?seed=${s}`;
+             const makeAlt2Url = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&nologo=true&seed=${s}`;
              const responseText = `Imagem gerada!`;
              
              if (wantsLogo) {
                const seeds = [seed, seed + 1, seed + 2, seed + 3];
-               const urls = seeds.map(s => makePollinationsUrl(s));
-               try {
-                 const settled = await Promise.allSettled(urls.map(u => fetchImageAsDataUrl(u)));
-                 const imageUrls = settled.map((r, i) => (r.status === 'fulfilled' ? r.value : urls[i]));
+               const urlsBySeed = seeds.map(s => [makePollinationsUrl(s), makeAltUrl(s), makeAlt2Url(s)]);
+               const resolveOneSeed = async (candidates) => {
+                 for (const u of candidates) {
+                   try {
+                     const dataUrl = await fetchImageAsDataUrl(u);
+                     if (dataUrl && /^data:image\//.test(dataUrl)) return dataUrl;
+                   } catch {}
+                 }
+                 return null;
+               };
+               const resolved = await Promise.all(urlsBySeed.map(resolveOneSeed));
+               const imageUrls = resolved.filter(Boolean);
+               if (imageUrls.length > 0) {
                  return res.json({ text: `${responseText} (variações)`, imageUrls, imageUrl: imageUrls[0], promptText: englishPromptClean });
-               } catch {
-                 return res.json({ text: `${responseText} (variações)`, imageUrls: urls, imageUrl: urls[0], promptText: englishPromptClean });
                }
+               return res.json({ text: `${responseText} (variações)`, imageUrls: [], imageUrl: undefined, promptText: englishPromptClean });
              } else {
-               const url = makePollinationsUrl(seed);
-               try {
-                 const imageDataUrl = await fetchImageAsDataUrl(url);
-                 return res.json({ text: responseText, imageUrl: imageDataUrl, promptText: englishPromptClean });
-               } catch {
-                 return res.json({ text: responseText, imageUrl: url, promptText: englishPromptClean });
+               const candidates = [makePollinationsUrl(seed), makeAltUrl(seed), makeAlt2Url(seed)];
+               for (const u of candidates) {
+                 try {
+                   const imageDataUrl = await fetchImageAsDataUrl(u);
+                   if (imageDataUrl && /^data:image\//.test(imageDataUrl)) {
+                     return res.json({ text: responseText, imageUrl: imageDataUrl, promptText: englishPromptClean });
+                   }
+                 } catch {}
                }
+               return res.json({ text: responseText, imageUrl: undefined, promptText: englishPromptClean });
              }
             
         } catch (imgError) {
             console.error("Erro ao preparar prompt de imagem:", imgError);
              const fallbackPrompt = `${String(message || '').trim()}${wantsTextOnImage ? brandName ? `, include overlay wordmark "${brandName}", high legibility, crisp typography` : ', include overlay title and captions, high legibility, crisp typography' : ', no text'}, no watermark, no banners, no QR code${paletteSuffix}`;
-             const primaryUrl = `https://pollinations.ai/p/${encodeURIComponent(fallbackPrompt)}?model=flux`;
-             const altUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?model=flux&nologo=true`;
-             try {
-               const imageDataUrl = await fetchImageAsDataUrl(altUrl);
-               return res.json({ text: `Imagem gerada com base no seu pedido.`, imageUrl: imageDataUrl, promptText: fallbackPrompt });
-             } catch {
-               return res.json({ text: `Imagem gerada com base no seu pedido.`, imageUrl: altUrl, promptText: fallbackPrompt });
+             const candidates = [
+               `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?model=flux`,
+               `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}`,
+               `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?model=flux&nologo=true`
+             ];
+             for (const u of candidates) {
+               try {
+                 const imageDataUrl = await fetchImageAsDataUrl(u);
+                 if (imageDataUrl && /^data:image\//.test(imageDataUrl)) {
+                   return res.json({ text: `Imagem gerada com base no seu pedido.`, imageUrl: imageDataUrl, promptText: fallbackPrompt });
+                 }
+               } catch {}
              }
+             return res.json({ text: `Imagem gerada com base no seu pedido, mas não foi possível obter o binário da imagem.`, imageUrl: undefined, promptText: fallbackPrompt });
         }
     }
 
