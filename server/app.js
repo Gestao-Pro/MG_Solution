@@ -128,6 +128,21 @@ const fetchImageAsDataUrl = (url, maxRedirects = 3) => new Promise((resolve, rej
         res.on('end', () => {
           const buffer = Buffer.concat(chunks);
           const mime = contentType.split(';')[0].trim();
+          const head = buffer.slice(0, 16);
+          const headTxt = head.toString('utf8').toLowerCase();
+          const isHtmlLike = headTxt.includes('<!doctype') || headTxt.includes('<html') || headTxt.includes('<head') || headTxt.includes('<body');
+          const sig = [buffer[0], buffer[1], buffer[2], buffer[3]];
+          const isPng = mime.includes('png') && sig[0] === 0x89 && sig[1] === 0x50 && sig[2] === 0x4e && sig[3] === 0x47;
+          const isJpeg = (mime.includes('jpeg') || mime.includes('jpg')) && sig[0] === 0xff && sig[1] === 0xd8;
+          const isWebp = mime.includes('webp') && sig[0] === 0x52 && sig[1] === 0x49 && sig[2] === 0x46 && sig[3] === 0x46;
+          const isGif = mime.includes('gif') && sig[0] === 0x47 && sig[1] === 0x49 && sig[2] === 0x46 && sig[3] === 0x38;
+          if (isHtmlLike) {
+            reject(new Error('Resposta não-imagem (HTML)'));
+            return;
+          }
+          if (!(isPng || isJpeg || isWebp || isGif)) {
+            // Aceita outros mime image/* mesmo sem assinatura conhecida
+          }
           const base64 = buffer.toString('base64');
           resolve(`data:${mime};base64,${base64}`);
         });
