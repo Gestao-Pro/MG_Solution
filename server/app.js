@@ -691,7 +691,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
             }
             if (imageUrls.length >= 1) {
               const summary = `Logomarca gerada com ${imageUrls.length} variações: símbolo acima, à direita, monograma e wordmark.`;
-              return res.json({ text: summary, imageUrls, promptText: `Variações: acima|direita|monograma|wordmark` });
+              return res.json({ text: summary, imageUrls, imageUrl: imageUrls[0], promptText: `Variações: acima|direita|monograma|wordmark` });
             }
           } catch (svgErr) {
             console.error("Falha ao gerar SVG via Gemini:", svgErr?.message || svgErr);
@@ -768,9 +768,9 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
                try {
                  const settled = await Promise.allSettled(urls.map(u => fetchImageAsDataUrl(u)));
                  const imageUrls = settled.map((r, i) => (r.status === 'fulfilled' ? r.value : urls[i]));
-                 return res.json({ text: `${responseText} (variações)`, imageUrls, promptText: englishPromptClean });
+                 return res.json({ text: `${responseText} (variações)`, imageUrls, imageUrl: imageUrls[0], promptText: englishPromptClean });
                } catch {
-                 return res.json({ text: `${responseText} (variações)`, imageUrls: urls, promptText: englishPromptClean });
+                 return res.json({ text: `${responseText} (variações)`, imageUrls: urls, imageUrl: urls[0], promptText: englishPromptClean });
                }
              } else {
                const url = makePollinationsUrl(seed);
@@ -980,7 +980,15 @@ app.get('/api/user/plan', requireAuth, async (req, res) => {
       res.json({ plan: 'free', cycle: 'monthly' });
     }
   } catch (e) {
-    res.status(500).json({ error: 'Falha ao obter plano' });
+    try {
+      const { email } = req.user || {};
+      const db = ensureStoreShape();
+      const u = email ? db.users[email] : null;
+      if (u && (u.plan || u.cycle)) {
+        return res.json({ plan: u.plan || 'free', cycle: u.cycle || 'monthly' });
+      }
+    } catch {}
+    res.json({ plan: 'free', cycle: 'monthly' });
   }
 });
 
