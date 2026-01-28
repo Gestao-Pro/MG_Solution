@@ -631,10 +631,10 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
         const wantsTextOnImage = wantsText || !!brandName;
         if (wantsLogo) {
           try {
-            const textModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: 'Output ONLY valid SVG markup representing a clean, modern logo. No markdown, no explanations.' });
+            const textModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: 'Output ONLY valid SVG markup with viewBox "0 0 1024 1024". No HTML or Markdown.' });
             const svgPrompt = brandName
-              ? `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Include the brand name "${brandName}" as a wordmark in the logo. Produce only SVG.`
-              : `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Produce only SVG.`;
+              ? `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Include the brand name "${brandName}" as a wordmark using <text> with a clean sans-serif font. Use viewBox "0 0 1024 1024". Produce only SVG.`
+              : `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Use viewBox "0 0 1024 1024". Produce only SVG.`;
             const svgResp = await textModel.generateContent({
               contents: [{ role: 'user', parts: [{ text: svgPrompt }] }]
             });
@@ -656,6 +656,12 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
               if (!/width=/.test(finalSvg) || !/height=/.test(finalSvg)) {
                 finalSvg = finalSvg.replace('<svg', '<svg width="1024" height="1024"');
               }
+              if (!/viewBox=/.test(finalSvg)) {
+                finalSvg = finalSvg.replace('<svg', '<svg viewBox="0 0 1024 1024"');
+              }
+              if (brandName && !finalSvg.includes(brandName) && !/<text[\s\S]*?>/i.test(finalSvg)) {
+                finalSvg = finalSvg.replace('</svg>', `<text x="50%" y="92%" text-anchor="middle" fill="#1f2937" font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif" font-weight="700" font-size="84">${brandName}</text></svg>`);
+              }
               const base64 = Buffer.from(finalSvg, 'utf-8').toString('base64');
               return res.json({ text: 'Logomarca gerada!', imageUrl: `data:image/svg+xml;base64,${base64}`, promptText: finalSvg });
             }
@@ -668,7 +674,8 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
             const imageModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
             const negatives = 'male, man, beard, moustache, stubble';
             const promptTextBase = String(message || '').trim();
-            const commonSuffix = wantsTextOnImage ? ` include overlay title and captions, high legibility, crisp typography, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
+            const overlayPhrase = brandName ? ` include overlay wordmark "${brandName}", high legibility, crisp typography` : ` include overlay title and captions, high legibility, crisp typography`;
+            const commonSuffix = wantsTextOnImage ? ` ${overlayPhrase}, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
             const identitySuffix = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` identity preserved from reference` : '';
             const usedPrompt = `${promptTextBase}, photorealistic studio product photo, 8K, ultra sharp, HDR, cinematic rim light, DSLR depth of field, realistic materials: leather, metal, skin, fabric,${identitySuffix}, negative prompt: (${negatives}),${commonSuffix}`;
             const parts = [];
@@ -700,7 +707,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
         }
         
         try {
-            const promptModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: wantsTextOnImage ? 'You are an expert prompt engineer. Output ONLY the prompt in English for an image with overlay title and captions aligned to the user request. No markdown.' : 'You are an expert prompt engineer. Output ONLY the prompt in English. No markdown.' });
+            const promptModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash', systemInstruction: wantsTextOnImage ? 'You are an expert prompt engineer. Output ONLY the prompt in English for an image with overlay wordmark aligned to the user request. No markdown.' : 'You are an expert prompt engineer. Output ONLY the prompt in English. No markdown.' });
             
             const promptParts = [{ text: `Create a detailed image generation prompt in English for: ${message}` }];
             if (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) {
@@ -717,7 +724,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
              let englishPrompt = promptResp.response.text().trim();
              englishPrompt = englishPrompt.replace(/^Here is a prompt: /i, '').replace(/`/g, '');
              const negatives = 'male, man, beard, moustache, stubble';
-             const overlaySuffix = wantsTextOnImage ? ` include overlay title and captions, high legibility, crisp typography, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
+             const overlaySuffix = wantsTextOnImage ? ` ${brandName ? `include overlay wordmark "${brandName}",` : 'include overlay title and captions,'} high legibility, crisp typography, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
              const identitySuffix2 = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` female, woman, identity preserved from reference` : '';
              const englishPromptClean = `${englishPrompt},${identitySuffix2}, negative prompt: (${negatives}),${overlaySuffix}`;
             
@@ -738,7 +745,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
             
         } catch (imgError) {
             console.error("Erro ao preparar prompt de imagem:", imgError);
-             const fallbackPrompt = `${String(message || '').trim()}${wantsTextOnImage ? ', include overlay title and captions, high legibility, crisp typography' : ', no text'}, no watermark, no banners, no QR code${paletteSuffix}`;
+             const fallbackPrompt = `${String(message || '').trim()}${wantsTextOnImage ? brandName ? `, include overlay wordmark "${brandName}", high legibility, crisp typography` : ', include overlay title and captions, high legibility, crisp typography' : ', no text'}, no watermark, no banners, no QR code${paletteSuffix}`;
              const primaryUrl = `https://pollinations.ai/p/${encodeURIComponent(fallbackPrompt)}?model=flux`;
              const altUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?model=flux&nologo=true`;
              try {
