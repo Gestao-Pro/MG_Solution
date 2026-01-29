@@ -661,7 +661,10 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
           return '';
         })();
         const wantsTextOnImage = wantsText || !!brandName;
-        if (wantsLogo) {
+        const wantsSvg = /svg|vetor|vector/i.test(msgLower);
+        
+        // Só gera SVG se solicitado explicitamente (svg/vetor), caso contrário usa o modelo de imagem raster (melhor qualidade)
+        if (wantsLogo && wantsSvg) {
           try {
             const textModel = genAI.getGenerativeModel({
               model: 'gemini-2.5-flash',
@@ -740,8 +743,8 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
         
         try {
             const imageModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
-            const negatives = 'male, man, beard, moustache, stubble';
-            const promptTextBase = String(message || '').trim();
+            const negatives = 'male, man, beard, moustache, stubble, blur, low quality, distortion';
+            const promptTextBase = String(message || '').trim() + (wantsLogo ? ", professional logo design, vector style aesthetics, white background, centered, high quality, 3D render, gradient colors, minimalistic but premium, sharp edges" : "");
             const overlayPhrase = brandName ? ` include overlay wordmark "${brandName}", high legibility, crisp typography` : ` include overlay title and captions, high legibility, crisp typography`;
             const commonSuffix = wantsTextOnImage ? ` ${overlayPhrase}, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
             const identitySuffix = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` identity preserved from reference` : '';

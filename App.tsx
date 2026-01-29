@@ -459,7 +459,8 @@ const App: React.FC = () => {
         setChats(prev => ({ ...prev, [currentAgentId]: [...prev[currentAgentId], userMessage] }));
         
         const lowerMsg = messageText.toLowerCase();
-        const isImageGen = /crie.*?imagem|gerar.*?imagem|create.*?image|generate.*?image|logo|logomarca|identidade visual/.test(lowerMsg);
+        // Regex mais abrangente para detectar intenção de geração de imagem/logo
+        const isImageGen = /(imagem|image|logo|logomarca|logotipo|visual|branding|crie.*?algo|desenhe|draw|generate)/i.test(lowerMsg);
         if (isImageGen) {
              setLoadingText("Criando imagem...");
         } else {
