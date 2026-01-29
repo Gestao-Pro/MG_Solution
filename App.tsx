@@ -227,8 +227,11 @@ const App: React.FC = () => {
     const saveCurrentSession = useCallback(async (problemSummary: string) => {
         const currentMessages = activeAgentId ? (chats[activeAgentId] || []) : messages;
         
+        console.log("App: saveCurrentSession iniciada. Agent:", activeAgentId, "Msgs:", currentMessages.length);
+        
         // Don't save empty sessions
         if (currentMessages.length <= 1 && currentMessages[0]?.id?.includes('initial')) {
+            console.log("App: Sessão vazia, não salvando.");
             addToast('Nada para salvar nesta conversa.', 'info');
             return;
         }
@@ -242,18 +245,22 @@ const App: React.FC = () => {
             reportData: reportData ? { ...reportData } : null,
         };
 
+        console.log("App: Enviando para o servidor...");
         const success = await saveSession(newSession);
         if (success) {
+            console.log("App: Salvo com sucesso no servidor.");
             // Update local state immediately
             setHistory(prevHistory => {
                 const alreadyExists = prevHistory.sessions.some(s => s.id === newSession.id);
                 if (alreadyExists) return prevHistory;
                 
                 const sessions = [newSession, ...prevHistory.sessions];
+                console.log("App: Histórico local atualizado. Total sessões:", sessions.length);
                 return { ...prevHistory, sessions: sessions.slice(0, 50) };
             });
             addToast('Sessão salva com sucesso!', 'success');
         } else {
+            console.error("App: Erro ao salvar sessão no servidor.");
             addToast('Erro ao salvar no servidor. Verifique sua conexão.', 'error');
         }
     }, [messages, chats, activeAgentId, currentAnalysis, reportData, addToast]);

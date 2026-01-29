@@ -268,6 +268,8 @@ const ChatView: React.FC<ChatViewProps> = ({
         const currentMessages = messages;
         const hasMessages = currentMessages.length > 1 || (currentMessages.length === 1 && !currentMessages[0]?.id?.includes('initial'));
         
+        console.log("ChatView: Nova Conversa clicada. Mensagens:", currentMessages.length, "Tem mensagens?", hasMessages);
+
         if (hasMessages) {
             const confirmed = window.confirm(
                 'Deseja iniciar uma nova conversa? A conversa atual será salva automaticamente no seu histórico.'
@@ -282,8 +284,16 @@ const ChatView: React.FC<ChatViewProps> = ({
                          : firstUserMsg.text;
                  }
                  
+                 console.log("ChatView: Salvando sessão com título:", title);
                  if (onSaveSession) {
-                     await onSaveSession(title);
+                     try {
+                         await onSaveSession(title);
+                         console.log("ChatView: Sessão salva com sucesso.");
+                     } catch (e) {
+                         console.error("ChatView: Erro ao salvar sessão antes de limpar:", e);
+                     }
+                 } else {
+                     console.warn("ChatView: onSaveSession não está definido.");
                  }
                  
                  // Chamamos a função de limpar passada pelo pai
@@ -327,11 +337,17 @@ const ChatView: React.FC<ChatViewProps> = ({
             {!isHistorySidebarOpen && (
                 <button
                     onClick={() => setIsHistorySidebarOpen(true)}
-                    className="fixed right-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 border-l border-t border-b border-gray-200 dark:border-gray-700 p-2 rounded-l-lg shadow-lg z-30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all group"
+                    className="fixed right-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 border-l border-t border-b border-gray-200 dark:border-gray-700 p-2 rounded-l-lg shadow-2xl z-[9999] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all group flex flex-col items-center min-w-[40px]"
                     title="Ver Histórico"
+                    style={{ right: 0 }}
                 >
-                    <History className="text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" size={24} />
-                    <span className="[writing-mode:vertical-lr] text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Histórico</span>
+                    <History className="text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform mb-2" size={24} />
+                    <span 
+                        className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+                        style={{ writingMode: 'vertical-lr', textOrientation: 'mixed' }}
+                    >
+                        Histórico
+                    </span>
                 </button>
             )}
 
