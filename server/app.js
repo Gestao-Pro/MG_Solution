@@ -636,12 +636,17 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
 
     // Verificamos se o usuário está pedindo explicitamente para GERAR UMA IMAGEM ou uma LOGOMARCA (SVG)
     const mLower = message.toLowerCase();
+    const hasImageAttachment = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0);
+    const isImageEditRequest = hasImageAttachment && (
+       /edite|editar|remova|remover|recrie|recriar|altere|alterar|mude|mudar|refaça|refazer|apague|apagar|troque|trocar|retire|retirar/i.test(mLower)
+    );
     const isImageGenerationRequest = (
       /crie.*?imagem/i.test(mLower) ||
       /gerar.*?imagem/i.test(mLower) ||
       /create.*?image/i.test(mLower) ||
       /generate.*?image/i.test(mLower) ||
-      /logo|logomarca|logo marca|logotipo|identidade visual|branding|marca/.test(mLower)
+      /logo|logomarca|logo marca|logotipo|identidade visual|branding|marca/.test(mLower) ||
+      isImageEditRequest
     );
 
     if (isImageGenerationRequest) {
@@ -748,7 +753,10 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
             const overlayPhrase = brandName ? ` include overlay wordmark "${brandName}", high legibility, crisp typography` : ` include overlay title and captions, high legibility, crisp typography`;
             const commonSuffix = wantsTextOnImage ? ` ${overlayPhrase}, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
             const identitySuffix = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` identity preserved from reference` : '';
-            const usedPrompt = `${promptTextBase}, photorealistic studio product photo, 8K, ultra sharp, HDR, cinematic rim light, DSLR depth of field, realistic materials: leather, metal, skin, fabric,${identitySuffix}, negative prompt: (${negatives}),${commonSuffix}`;
+            const styleKeywords = isImageEditRequest 
+                ? ", high quality, 8k, ultra sharp, detailed" 
+                : ", photorealistic studio product photo, 8K, ultra sharp, HDR, cinematic rim light, DSLR depth of field, realistic materials: leather, metal, skin, fabric";
+            const usedPrompt = `${promptTextBase}${styleKeywords}${identitySuffix}, negative prompt: (${negatives}),${commonSuffix}`;
             const parts = [];
             if (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) {
               const ref = imagePayloads[0];
@@ -816,7 +824,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
 
             let promptPartsForModel = [];
             if (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) {
-              promptPartsForModel.push({ text: `You must preserve identity from the reference image. Subject is female. Avoid any male features. Output ONLY the prompt text.` });
+              promptPartsForModel.push({ text: `Analyze the reference image and the user's request. Create a detailed prompt to recreate or edit the image accordingly. Output ONLY the prompt text.` });
               const ref = imagePayloads[0];
               if (ref?.data && ref?.mimeType) {
                 promptPartsForModel.push({ inlineData: { data: ref.data, mimeType: ref.mimeType } });
@@ -839,7 +847,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
              const generalNegativeConstraints = `no watermark, no banners, no QR code`;
              const textNegativeConstraint = wantsTextOnImage ? '' : 'no text,';
              const finalOverlaySuffix = `${textNegativeConstraint} ${generalNegativeConstraints}`;
-             const identitySuffix2 = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` female, woman, identity preserved from reference` : '';
+             const identitySuffix2 = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` identity preserved from reference` : '';
              const englishPromptClean = `${englishPrompt},${identitySuffix2}, negative prompt: (${negatives}),${finalOverlaySuffix}`;
             
             console.log(`Prompt gerado para imagem: ${englishPrompt}`);
