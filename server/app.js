@@ -1108,6 +1108,75 @@ app.get('/api/user/plan', requireAuth, async (req, res) => {
   }
 });
 
+// Histórico de Conversas
+app.get('/api/history', requireAuth, async (req, res) => {
+  try {
+    const { email } = req.user || {};
+    if (!email) return res.status(400).json({ error: 'Email não encontrado' });
+
+    const db = ensureStoreShape();
+    const u = db.users[email];
+    if (!u) return res.json({ sessions: [] });
+    
+    return res.json({ sessions: u.history || [] });
+  } catch (e) {
+    console.error('Erro ao buscar histórico:', e);
+    res.status(500).json({ error: 'Erro interno ao buscar histórico' });
+  }
+});
+
+app.post('/api/history', requireAuth, async (req, res) => {
+  try {
+    const { email } = req.user || {};
+    if (!email) return res.status(400).json({ error: 'Email não encontrado' });
+
+    const session = req.body;
+    if (!session || !session.id) return res.status(400).json({ error: 'Sessão inválida' });
+
+    const db = ensureStoreShape();
+    if (!db.users[email]) db.users[email] = { plan: 'free', cycle: 'monthly' };
+    
+    if (!db.users[email].history) db.users[email].history = [];
+    
+    // Atualiza se já existir, senão adiciona no topo
+    const idx = db.users[email].history.findIndex(s => s.id === session.id);
+    if (idx !== -1) {
+      db.users[email].history[idx] = session;
+    } else {
+      db.users[email].history.unshift(session);
+    }
+
+    // Limita a 50 sessões
+    if (db.users[email].history.length > 50) {
+      db.users[email].history = db.users[email].history.slice(0, 50);
+    }
+
+    writeStore(db);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Erro ao salvar histórico:', e);
+    res.status(500).json({ error: 'Erro interno ao salvar histórico' });
+  }
+});
+
+app.delete('/api/history/:id', requireAuth, async (req, res) => {
+  try {
+    const { email } = req.user || {};
+    const { id } = req.params;
+    if (!email) return res.status(400).json({ error: 'Email não encontrado' });
+
+    const db = ensureStoreShape();
+    if (db.users[email] && db.users[email].history) {
+      db.users[email].history = db.users[email].history.filter(s => s.id !== id);
+      writeStore(db);
+    }
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Erro ao deletar histórico:', e);
+    res.status(500).json({ error: 'Erro interno ao deletar histórico' });
+  }
+});
+
 // Email/password login with security check
 app.post('/api/auth/login', async (req, res) => {
   try {
