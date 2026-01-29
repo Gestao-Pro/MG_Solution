@@ -73,16 +73,17 @@ const App: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const fetchHistory = useCallback(async () => {
+        const token = getAuthToken();
+        if (token) {
+            const data = await getHistory();
+            setHistory(data);
+        }
+    }, []);
+
     useEffect(() => {
-        const fetchHistory = async () => {
-            const token = getAuthToken();
-            if (token) {
-                const data = await getHistory();
-                setHistory(data);
-            }
-        };
         fetchHistory();
-    }, [view]); // Re-fetch when view changes to history or when user might have logged in
+    }, [view, fetchHistory]); // Re-fetch when view changes to history or when user might have logged in
 
     useEffect(() => {
         localStorage.setItem('theme', theme);
@@ -225,40 +226,52 @@ const App: React.FC = () => {
 
     const saveCurrentSession = useCallback(async (problemSummary: string) => {
         const currentMessages = activeAgentId ? (chats[activeAgentId] || []) : messages;
+        
+        // Don't save empty sessions
+        if (currentMessages.length <= 1 && currentMessages[0]?.id?.includes('initial')) {
+            addToast('Nada para salvar nesta conversa.', 'info');
+            return;
+        }
+
         const newSession: AnalysisSession = {
             id: uuidv4(),
             timestamp: new Date().toISOString(),
             userProblem: problemSummary,
-            messages: currentMessages,
-            currentAnalysis: currentAnalysis,
-            reportData: reportData,
+            messages: [...currentMessages], // Clone messages
+            currentAnalysis: currentAnalysis ? { ...currentAnalysis } : null,
+            reportData: reportData ? { ...reportData } : null,
         };
 
         const success = await saveSession(newSession);
         if (success) {
+            // Update local state immediately
             setHistory(prevHistory => {
+                const alreadyExists = prevHistory.sessions.some(s => s.id === newSession.id);
+                if (alreadyExists) return prevHistory;
+                
                 const sessions = [newSession, ...prevHistory.sessions];
-                const prunedSessions = sessions.slice(0, 50);
-                return { ...prevHistory, sessions: prunedSessions };
+                return { ...prevHistory, sessions: sessions.slice(0, 50) };
             });
-            addToast('Sessão salva.', 'success');
+            addToast('Sessão salva com sucesso!', 'success');
         } else {
-            addToast('Falha ao salvar sessão no servidor.', 'error');
+            addToast('Erro ao salvar no servidor. Verifique sua conexão.', 'error');
         }
-    }, [messages, chats, activeAgentId, currentAnalysis, reportData]);
+    }, [messages, chats, activeAgentId, currentAnalysis, reportData, addToast]);
 
-    const handleSaveSession = useCallback(async () => {
-        let problemSummary = "Nova Sessão";
+    const handleSaveSession = useCallback(async (manualTitle?: string) => {
+        let problemSummary = manualTitle || "Nova Sessão";
         
-        // Tenta pegar o primeiro texto do usuário como título
-        const currentMessages = activeAgentId ? (chats[activeAgentId] || []) : messages;
-        const firstUserMsg = currentMessages.find(m => m.sender === 'user' && m.text);
-        if (firstUserMsg && firstUserMsg.text) {
-            problemSummary = firstUserMsg.text.length > 50 
-                ? firstUserMsg.text.substring(0, 47) + "..." 
-                : firstUserMsg.text;
-        } else if (currentAnalysis?.problemSummary) {
-            problemSummary = currentAnalysis.problemSummary;
+        // Se não foi passado título manual, tenta pegar o primeiro texto do usuário
+        if (!manualTitle || manualTitle === "Sessão Salva Manualmente") {
+            const currentMessages = activeAgentId ? (chats[activeAgentId] || []) : messages;
+            const firstUserMsg = currentMessages.find(m => m.sender === 'user' && m.text);
+            if (firstUserMsg && firstUserMsg.text) {
+                problemSummary = firstUserMsg.text.length > 50 
+                    ? firstUserMsg.text.substring(0, 47) + "..." 
+                    : firstUserMsg.text;
+            } else if (currentAnalysis?.problemSummary) {
+                problemSummary = currentAnalysis.problemSummary;
+            }
         }
 
         await saveCurrentSession(problemSummary);
@@ -737,6 +750,10 @@ const App: React.FC = () => {
                                             loadingText={loadingText}
                                             onBack={handleBackToSelection}
                                             onClearConversation={() => handleClearConversation(activeAgent.id)}
+                                            onSaveSession={handleSaveSession}
+                                            history={history.sessions}
+                                            onLoadSession={loadSession}
+                                            onDeleteSession={deleteSession}
                                         />
                                     )}
                                     {view === 'analysis' && currentAnalysis && userProfile && (

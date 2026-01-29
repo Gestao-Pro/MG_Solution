@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Agent, Message as MessageType } from '../types';
 import Message from './Message';
 import IconButton from './IconButton';
-import { Send, Mic, Square, ArrowLeft, Paperclip, X, Image as ImageIcon, FileSpreadsheet, FileText } from 'lucide-react';
+import { Send, Mic, Square, ArrowLeft, Paperclip, X, Image as ImageIcon, FileSpreadsheet, FileText, History } from 'lucide-react';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import { generateSpeech } from '../services/geminiService';
 import { getPreferredVoice, getFallbackVoice } from '../utils/voiceConfig';
 import Avatar from './Avatar';
+import ChatHistorySidebar from './ChatHistorySidebar';
+import { AnalysisSession } from '../types';
 
 interface ChatViewProps {
     agent: Agent;
@@ -16,9 +18,25 @@ interface ChatViewProps {
     loadingText?: string;
     onBack: () => void;
     onClearConversation: () => void;
+    onSaveSession?: (title?: string) => Promise<void>;
+    history?: AnalysisSession[];
+    onLoadSession?: (sessionId: string) => void;
+    onDeleteSession?: (sessionId: string) => void;
 }
 
-const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loading, loadingText, onBack, onClearConversation }) => {
+const ChatView: React.FC<ChatViewProps> = ({ 
+    agent, 
+    messages, 
+    onSendMessage, 
+    loading, 
+    loadingText, 
+    onBack, 
+    onClearConversation,
+    onSaveSession,
+    history = [],
+    onLoadSession,
+    onDeleteSession
+}) => {
     const [inputText, setInputText] = useState('');
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
@@ -28,6 +46,7 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
     const [documentFileName, setDocumentFileName] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [messageAudios, setMessageAudios] = useState<Record<string, string>>({});
+    const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -245,11 +264,32 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
         }
     };
 
-    const handleClearConversationClick = () => {
-        const confirmed = window.confirm(
-            'Deseja iniciar uma nova conversa? Isso limpará o histórico deste agente.'
-        );
-        if (confirmed) {
+    const handleClearConversationClick = async () => {
+        const currentMessages = messages;
+        const hasMessages = currentMessages.length > 1 || (currentMessages.length === 1 && !currentMessages[0]?.id?.includes('initial'));
+        
+        if (hasMessages) {
+            const confirmed = window.confirm(
+                'Deseja iniciar uma nova conversa? A conversa atual será salva automaticamente no seu histórico.'
+            );
+            if (confirmed) {
+                 // Tenta salvar antes de limpar
+                 const firstUserMsg = currentMessages.find(m => m.sender === 'user' && m.text);
+                 let title = "Nova Sessão";
+                 if (firstUserMsg && firstUserMsg.text) {
+                     title = firstUserMsg.text.length > 50 
+                         ? firstUserMsg.text.substring(0, 47) + "..." 
+                         : firstUserMsg.text;
+                 }
+                 
+                 if (onSaveSession) {
+                     await onSaveSession(title);
+                 }
+                 
+                 // Chamamos a função de limpar passada pelo pai
+                 onClearConversation();
+             }
+        } else {
             onClearConversation();
         }
     };
@@ -267,15 +307,44 @@ const ChatView: React.FC<ChatViewProps> = ({ agent, messages, onSendMessage, loa
                         <p className="text-sm text-gray-500 dark:text-gray-400">{agent.specialty}</p>
                     </div>
                 </div>
-                <div className="ml-auto">
+                <div className="ml-auto flex items-center gap-2">
+                    <IconButton 
+                        icon={History} 
+                        onClick={() => setIsHistorySidebarOpen(true)} 
+                        tooltip="Histórico do Chat" 
+                        className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
+                    />
                     <button
                         onClick={handleClearConversationClick}
-                        className="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white"
+                        className="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm transition-colors"
                     >
                         Nova Conversa
                     </button>
                 </div>
             </header>
+
+            {/* Floating History Tab Button */}
+            {!isHistorySidebarOpen && (
+                <button
+                    onClick={() => setIsHistorySidebarOpen(true)}
+                    className="fixed right-0 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-900 border-l border-t border-b border-gray-200 dark:border-gray-700 p-2 rounded-l-lg shadow-lg z-30 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all group"
+                    title="Ver Histórico"
+                >
+                    <History className="text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" size={24} />
+                    <span className="[writing-mode:vertical-lr] text-[10px] font-bold text-gray-400 mt-2 uppercase tracking-widest">Histórico</span>
+                </button>
+            )}
+
+            <ChatHistorySidebar 
+                isOpen={isHistorySidebarOpen}
+                onClose={() => setIsHistorySidebarOpen(false)}
+                history={history}
+                onLoadSession={(sid) => {
+                    setIsHistorySidebarOpen(false);
+                    onLoadSession?.(sid);
+                }}
+                onDeleteSession={onDeleteSession || (() => {})}
+            />
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {messages.map((msg) => (
