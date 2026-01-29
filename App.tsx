@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { getHistory, saveSession, deleteSession as apiDeleteSession } from '@/services/historyService';
+import { getAuthToken } from '@/services/authService';
 import { v4 as uuidv4 } from 'uuid';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -52,10 +54,7 @@ const App: React.FC = () => {
     const [hasOnboarded, setHasOnboarded] = useState<boolean>(() => {
         return localStorage.getItem('hasOnboarded') === 'true';
     });
-    const [history, setHistory] = useState<History>(() => {
-        const savedHistory = localStorage.getItem('analysisHistory');
-        return savedHistory ? JSON.parse(savedHistory) : { sessions: [] };
-    });
+    const [history, setHistory] = useState<History>({ sessions: [] });
     const [activeAgentId, setActiveAgentId] = useState<AgentId | null>(null);
     const [activeArea, setActiveArea] = useState<AgentArea>('Estratégia');
     const [loading, setLoading] = useState(false);
@@ -73,6 +72,17 @@ const App: React.FC = () => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            const token = getAuthToken();
+            if (token) {
+                const data = await getHistory();
+                setHistory(data);
+            }
+        };
+        fetchHistory();
+    }, [view]); // Re-fetch when view changes to history or when user might have logged in
 
     useEffect(() => {
         localStorage.setItem('theme', theme);
@@ -183,7 +193,6 @@ const App: React.FC = () => {
     const handleLogout = () => {
         try {
             // Preserve per-user profile and onboarding status; clear session-related keys
-            localStorage.removeItem('analysisHistory');
             localStorage.removeItem('activeAgentId');
             localStorage.removeItem('imagenQuotaExhaustedUntil');
             localStorage.removeItem('authToken');
@@ -214,25 +223,46 @@ const App: React.FC = () => {
         setView(activeAgentId ? 'chat' : 'agent-selection');
     };
 
-    const saveCurrentSession = useCallback((problemSummary: string) => {
+    const saveCurrentSession = useCallback(async (problemSummary: string) => {
+        const currentMessages = activeAgentId ? (chats[activeAgentId] || []) : messages;
         const newSession: AnalysisSession = {
             id: uuidv4(),
             timestamp: new Date().toISOString(),
             userProblem: problemSummary,
-            messages: messages,
+            messages: currentMessages,
             currentAnalysis: currentAnalysis,
             reportData: reportData,
         };
 
-        setHistory(prevHistory => {
-            const sessions = [newSession, ...prevHistory.sessions];
-            const prunedSessions = sessions.slice(0, 50);
-            const updatedHistory = { ...prevHistory, sessions: prunedSessions };
-            localStorage.setItem('analysisHistory', JSON.stringify(updatedHistory));
+        const success = await saveSession(newSession);
+        if (success) {
+            setHistory(prevHistory => {
+                const sessions = [newSession, ...prevHistory.sessions];
+                const prunedSessions = sessions.slice(0, 50);
+                return { ...prevHistory, sessions: prunedSessions };
+            });
             addToast('Sessão salva.', 'success');
-            return updatedHistory;
-        });
-    }, [messages, currentAnalysis, reportData]);
+        } else {
+            addToast('Falha ao salvar sessão no servidor.', 'error');
+        }
+    }, [messages, chats, activeAgentId, currentAnalysis, reportData]);
+
+    const handleSaveSession = useCallback(async () => {
+        let problemSummary = "Nova Sessão";
+        
+        // Tenta pegar o primeiro texto do usuário como título
+        const currentMessages = activeAgentId ? (chats[activeAgentId] || []) : messages;
+        const firstUserMsg = currentMessages.find(m => m.sender === 'user' && m.text);
+        if (firstUserMsg && firstUserMsg.text) {
+            problemSummary = firstUserMsg.text.length > 50 
+                ? firstUserMsg.text.substring(0, 47) + "..." 
+                : firstUserMsg.text;
+        } else if (currentAnalysis?.problemSummary) {
+            problemSummary = currentAnalysis.problemSummary;
+        }
+
+        await saveCurrentSession(problemSummary);
+    }, [activeAgentId, chats, messages, currentAnalysis, saveCurrentSession]);
 
     const loadSession = useCallback((sessionId: string) => {
         const sessionToLoad = history.sessions.find(session => session.id === sessionId);
@@ -248,12 +278,17 @@ const App: React.FC = () => {
         }
     }, [history.sessions, setMessages, setCurrentAnalysis, setReportData, setUserProblem, setChats]);
 
-    const deleteSession = useCallback((sessionId: string) => {
-        setHistory(prevHistory => {
-            const updatedHistory = { ...prevHistory, sessions: prevHistory.sessions.filter(session => session.id !== sessionId) };
-            localStorage.setItem('analysisHistory', JSON.stringify(updatedHistory));
-            return updatedHistory;
-        });
+    const deleteSession = useCallback(async (sessionId: string) => {
+        const success = await apiDeleteSession(sessionId);
+        if (success) {
+            setHistory(prevHistory => {
+                const updatedHistory = { ...prevHistory, sessions: prevHistory.sessions.filter(session => session.id !== sessionId) };
+                return updatedHistory;
+            });
+            addToast('Sessão excluída.', 'success');
+        } else {
+            addToast('Falha ao excluir sessão no servidor.', 'error');
+        }
     }, []);
 
     const handleSelectArea = (area: AgentArea) => {
@@ -661,7 +696,7 @@ const App: React.FC = () => {
                                 toggleTheme={toggleTheme}
                                 userProfile={userProfile}
                                 onEditProfile={handleEditProfile}
-                                onSaveSession={saveCurrentSession}
+                                onSaveSession={handleSaveSession}
                                 onLogout={handleLogout}
                             />
                             <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-800">

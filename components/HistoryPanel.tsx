@@ -5,21 +5,29 @@ import { ptBR } from 'date-fns/locale';
 import { Trash2, FolderOpen } from 'lucide-react';
 
 interface HistoryPanelProps {
-    history: History;
+    onClose: () => void;
+    history: AnalysisSession[];
     onLoadSession: (sessionId: string) => void;
     onDeleteSession: (sessionId: string) => void;
 }
 
-const HistoryPanel: React.FC<HistoryPanelProps> = ({ history, onLoadSession, onDeleteSession }) => {
+const HistoryPanel: React.FC<HistoryPanelProps> = ({ onClose, history, onLoadSession, onDeleteSession }) => {
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-gray-900 shadow-lg rounded-lg p-6 overflow-hidden">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 border-b pb-4 border-gray-200 dark:border-gray-700">Histórico de Análises</h2>
+        <div className="flex flex-col h-full bg-white dark:bg-gray-900 shadow-lg rounded-lg p-6 overflow-hidden relative">
+            <button 
+                onClick={onClose}
+                className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                title="Fechar"
+            >
+                <FolderOpen className="rotate-90" size={24} />
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 border-b pb-4 border-gray-200 dark:border-gray-700">Histórico de Conversas</h2>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {history.sessions.length === 0 ? (
+                {history.length === 0 ? (
                     <p className="text-gray-500 dark:text-gray-400 text-center mt-10">Nenhuma sessão salva ainda.</p>
                 ) : (
                     <ul className="space-y-4">
-                        {history.sessions.map((session) => (
+                        {history.map((session) => (
                             <li key={session.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center transition-all duration-200 hover:shadow-md hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <div className="flex-1 mb-3 sm:mb-0">
                                     <p className="text-lg font-semibold text-blue-700 dark:text-blue-400 break-words">{session.userProblem || 'Sessão sem título'}</p>
