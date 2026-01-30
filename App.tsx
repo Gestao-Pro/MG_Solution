@@ -287,16 +287,28 @@ const App: React.FC = () => {
     const loadSession = useCallback((sessionId: string) => {
         const sessionToLoad = history.sessions.find(session => session.id === sessionId);
         if (sessionToLoad) {
+            // Identifica qual agente é dono das mensagens
+            const firstAgentMsg = sessionToLoad.messages.find(m => m.sender === 'agent' && m.agent);
+            const agentId = firstAgentMsg?.agent?.id || SUPER_BOSS.id;
+            
+            console.log("App: Carregando sessão", sessionId, "para o agente", agentId);
+            
+            // Restaura o estado global
             setMessages(sessionToLoad.messages);
             setCurrentAnalysis(sessionToLoad.currentAnalysis);
             setReportData(sessionToLoad.reportData);
             setUserProblem(sessionToLoad.userProblem);
-            setChats(prev => ({ ...prev, [SUPER_BOSS.id]: sessionToLoad.messages })); // Assuming messages are for SUPER_BOSS
-            setActiveAgentId(SUPER_BOSS.id);
+            
+            // Restaura o chat específico do agente
+            setChats(prev => ({ ...prev, [agentId]: sessionToLoad.messages }));
+            
+            // Define o agente ativo e muda para a view de chat
+            setActiveAgentId(agentId as AgentId);
             setView('chat');
-            setIsHistoryPanelOpen(false); // Close history panel after loading
+            navigate('/chat');
+            setIsHistoryPanelOpen(false);
         }
-    }, [history.sessions, setMessages, setCurrentAnalysis, setReportData, setUserProblem, setChats]);
+    }, [history.sessions, setMessages, setCurrentAnalysis, setReportData, setUserProblem, setChats, navigate]);
 
     const deleteSession = useCallback(async (sessionId: string) => {
         const success = await apiDeleteSession(sessionId);

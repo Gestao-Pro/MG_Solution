@@ -15,10 +15,14 @@ const isGreeting = (s: string): boolean => {
 export function computeStage(chatHistory: Message[], agentId?: string): QuestionStage {
   try {
     const relevant = chatHistory.filter((m) => m.sender === 'agent' && (!agentId || m.agent?.id === agentId));
-    const questionsCount = relevant.reduce((acc, m) => acc + ((m.text || '').includes('?') ? 1 : 0), 0);
-    if (questionsCount <= 0) return 'diagnostico';
-    if (questionsCount === 1) return 'priorizacao';
-    if (questionsCount === 2) return 'execucao';
+    
+    // Contagem de perguntas únicas feitas pelo agente (evita duplicatas se a mesma pergunta for repetida)
+    const uniqueQuestions = new Set(relevant.map(m => m.text?.trim()).filter(Boolean));
+    const questionsCount = uniqueQuestions.size;
+    
+    if (questionsCount <= 1) return 'diagnostico';
+    if (questionsCount === 2) return 'priorizacao';
+    if (questionsCount === 3) return 'execucao';
     return 'followup';
   } catch {
     return 'diagnostico';
@@ -81,6 +85,17 @@ export function getNextAgentQuestion(
 ): { question: string; stage: QuestionStage; greetingPrefix?: string } {
   const stage = computeStage(chatHistory, agent.id);
   const q = byAreaQuestion(agent, stage, profile);
+  
+  // Verifica se a pergunta que estamos prestes a fazer já foi respondida ou feita recentemente
+  const lastAgentMsg = [...chatHistory].reverse().find(m => m.sender === 'agent' && m.agent?.id === agent.id);
+  const isDuplicate = lastAgentMsg && lastAgentMsg.text?.includes(q.substring(0, 20));
+
+  let finalQuestion = q;
+  if (isDuplicate && stage !== 'followup') {
+      // Se for duplicada, tenta forçar o próximo estágio ou adicionar um lembrete
+      finalQuestion = `Além do que já conversamos, ${q.charAt(0).toLowerCase()}${q.slice(1)}`;
+  }
+
   let prefix: string | undefined = undefined;
   if (isGreeting(userMessage)) {
     const firstName = String(profile?.userName || '').split(' ')[0];
@@ -90,7 +105,7 @@ export function getNextAgentQuestion(
     const hi = `${hiBase}${firstName ? `, ${firstName}` : ''}!`;
     prefix = hi;
   }
-  return { question: q.endsWith('?') ? q : `${q}?`, stage, greetingPrefix: prefix };
+  return { question: finalQuestion.endsWith('?') ? finalQuestion : `${finalQuestion}?`, stage, greetingPrefix: prefix };
 }
 // Perguntas específicas por agente (override por estágio)
 const AGENT_QUESTION_OVERRIDES: Record<string, Partial<Record<QuestionStage, string>>> = {

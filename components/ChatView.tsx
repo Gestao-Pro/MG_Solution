@@ -77,6 +77,27 @@ const ChatView: React.FC<ChatViewProps> = ({
 
     useEffect(scrollToBottom, [messages, loading]);
     
+    // Efeito para salvar automaticamente ao sair
+    useEffect(() => {
+        return () => {
+            const currentMessages = messages;
+            const hasMessages = currentMessages.length > 1 || (currentMessages.length === 1 && !currentMessages[0]?.id?.includes('initial'));
+            
+            if (hasMessages && onSaveSession) {
+                console.log("ChatView: Auto-salvando ao sair do chat...");
+                const firstUserMsg = currentMessages.find(m => m.sender === 'user' && m.text);
+                let title = "Sessão Automática";
+                if (firstUserMsg && firstUserMsg.text) {
+                    title = firstUserMsg.text.length > 50 
+                        ? firstUserMsg.text.substring(0, 47) + "..." 
+                        : firstUserMsg.text;
+                }
+                // Não usamos await aqui porque é um cleanup de unmount, mas chamamos a função
+                onSaveSession(title).catch(e => console.error("ChatView: Erro no auto-save ao sair:", e));
+            }
+        };
+    }, []); // Executa apenas no unmount do componente
+
     const handleSend = () => {
         // Avoid concurrent sends that can trigger API 429s
         if (loading) return;
