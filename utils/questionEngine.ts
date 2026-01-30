@@ -13,7 +13,7 @@ const isGreeting = (s: string): boolean => {
 };
 
 // Detecção de entidades básicas para evitar repetições
-const detectEntities = (chatHistory: Message[]) => {
+export const detectEntities = (chatHistory: Message[]) => {
   const text = chatHistory.map(m => normalize(m.text)).join(' ');
   return {
     hasObjective: /objetivo|meta|alvo|educar|vender|leads|engajamento/.test(text),

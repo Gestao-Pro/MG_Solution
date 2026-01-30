@@ -1,7 +1,7 @@
 // geminiService.ts
 // Este arquivo é um placeholder para o serviço Gemini.
 // A implementação real dependeria da integração com a API do Google Gemini.
-import { getNextAgentQuestion } from '../utils/questionEngine';
+import { getNextAgentQuestion, detectEntities } from '../utils/questionEngine';
 import { trackEvent, getOrCreateAnonId } from './analyticsService';
 import { apiFetch } from './api';
 import { SUPER_BOSS, AGENTS } from '@/constants';
@@ -124,6 +124,20 @@ export const generateSuperBossAnalysis = async (
 ): Promise<{ summary: string; involvedAgentIds: string[]; textResponse?: string }> => {
   try {
     const token = localStorage.getItem('authToken');
+    
+    // Adiciona instrução negativa para o SuperBoss também
+    const entities = detectEntities(Array.isArray(chatHistory) ? chatHistory : []);
+    const infoAvoid = [
+      entities.hasObjective ? 'objetivo' : '',
+      entities.hasTone ? 'tom de voz' : '',
+      entities.hasFrequency ? 'frequência' : '',
+      entities.hasAudience ? 'público' : '',
+      entities.hasMetric ? 'métricas' : ''
+    ].filter(Boolean).join(', ');
+
+    const systemInstruction = SUPER_BOSS.systemInstruction + 
+      (infoAvoid ? `\n\nIMPORTANTE: O usuário já informou sobre ${infoAvoid}. Não pergunte novamente sobre isso e use essas informações para sua análise.` : '');
+
     const resp = await apiFetch('/api/ai/superboss', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -131,7 +145,7 @@ export const generateSuperBossAnalysis = async (
         message: messageText,
         userProfile,
         chatHistory,
-        systemInstruction: SUPER_BOSS.systemInstruction
+        systemInstruction: systemInstruction
       })
     });
     if (!resp.ok) {
