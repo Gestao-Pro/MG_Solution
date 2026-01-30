@@ -12,14 +12,33 @@ const isGreeting = (s: string): boolean => {
   return ['oi','ola','olá','bom dia','boa tarde','boa noite','hey','hello'].some(t => n.includes(normalize(t)));
 };
 
+// Detecção de entidades básicas para evitar repetições
+const detectEntities = (chatHistory: Message[]) => {
+  const text = chatHistory.map(m => normalize(m.text)).join(' ');
+  return {
+    hasObjective: /objetivo|meta|alvo|educar|vender|leads|engajamento/.test(text),
+    hasTone: /tom|voz|estilo|formal|amigavel|inspirador|inovador/.test(text),
+    hasFrequency: /frequencia|ritmo|diario|semanal|quinzenal|todo dia|uma vez/.test(text),
+    hasAudience: /publico|cliente|persona|quem|segmento/.test(text),
+    hasMetric: /metrica|kpi|sucesso|engajamento|cliques|vendas|salvas/.test(text)
+  };
+};
+
 export function computeStage(chatHistory: Message[], agentId?: string): QuestionStage {
   try {
+    const entities = detectEntities(chatHistory);
     const relevant = chatHistory.filter((m) => m.sender === 'agent' && (!agentId || m.agent?.id === agentId));
     
-    // Contagem de perguntas únicas feitas pelo agente (evita duplicatas se a mesma pergunta for repetida)
+    // Contagem de perguntas únicas feitas pelo agente
     const uniqueQuestions = new Set(relevant.map(m => m.text?.trim()).filter(Boolean));
     const questionsCount = uniqueQuestions.size;
     
+    // Se já temos as entidades básicas, avançamos o estágio mesmo com poucas perguntas
+    if (entities.hasObjective && entities.hasTone && stageIndex('diagnostico') >= 0) {
+      if (entities.hasFrequency && entities.hasAudience) return 'execucao';
+      return 'priorizacao';
+    }
+
     if (questionsCount <= 1) return 'diagnostico';
     if (questionsCount === 2) return 'priorizacao';
     if (questionsCount === 3) return 'execucao';
@@ -29,13 +48,32 @@ export function computeStage(chatHistory: Message[], agentId?: string): Question
   }
 }
 
-function byAreaQuestion(agent: Agent, stage: QuestionStage, profile?: UserProfile): string {
+const stageIndex = (s: QuestionStage) => ['diagnostico', 'priorizacao', 'execucao', 'followup'].indexOf(s);
+
+function byAreaQuestion(agent: Agent, stage: QuestionStage, chatHistory: Message[], profile?: UserProfile): string {
+  const entities = detectEntities(chatHistory);
   const area = String(agent.area || '').toLowerCase();
   const challenge = String(profile?.mainChallenge || '').trim();
 
+  // Se o estágio é diagnóstico mas já temos objetivo e tom, pula para o próximo
+  if (stage === 'diagnostico' && entities.hasObjective && entities.hasTone) {
+    return byAreaQuestion(agent, 'priorizacao', chatHistory, profile);
+  }
+
+  // Se o estágio é priorização mas já temos frequência e público, pula para execução
+  if (stage === 'priorizacao' && entities.hasFrequency && entities.hasAudience) {
+    return byAreaQuestion(agent, 'execucao', chatHistory, profile);
+  }
+
   // Preferir override específico por agente
   const override = AGENT_QUESTION_OVERRIDES[agent.id]?.[stage];
-  if (override) return override;
+  if (override) {
+    // Se a pergunta de override já foi respondida (ex: pergunta sobre métrica quando já temos métrica), tenta a próxima
+    if (stage === 'followup' && entities.hasMetric && override.includes('métrica')) {
+       return 'Quais são os próximos passos para colocar esse plano em prática?';
+    }
+    return override;
+  }
 
   switch (area) {
     case 'estratégia':
@@ -84,7 +122,7 @@ export function getNextAgentQuestion(
   userMessage: string
 ): { question: string; stage: QuestionStage; greetingPrefix?: string } {
   const stage = computeStage(chatHistory, agent.id);
-  const q = byAreaQuestion(agent, stage, profile);
+  const q = byAreaQuestion(agent, stage, chatHistory, profile);
   
   // Verifica se a pergunta que estamos prestes a fazer já foi respondida ou feita recentemente
   const lastAgentMsg = [...chatHistory].reverse().find(m => m.sender === 'agent' && m.agent?.id === agent.id);
@@ -96,6 +134,18 @@ export function getNextAgentQuestion(
       finalQuestion = `Além do que já conversamos, ${q.charAt(0).toLowerCase()}${q.slice(1)}`;
   }
 
+  // Adiciona uma instrução negativa para o modelo não repetir o que já sabe
+  const entities = detectEntities(chatHistory);
+  const infoAvoid = [
+    entities.hasObjective ? 'objetivo' : '',
+    entities.hasTone ? 'tom de voz' : '',
+    entities.hasFrequency ? 'frequência' : '',
+    entities.hasAudience ? 'público' : '',
+    entities.hasMetric ? 'métricas' : ''
+  ].filter(Boolean).join(', ');
+
+  const guidanceExtra = infoAvoid ? ` (Nota: O usuário já informou sobre ${infoAvoid}, não pergunte novamente sobre isso.)` : '';
+  
   let prefix: string | undefined = undefined;
   if (isGreeting(userMessage)) {
     const firstName = String(profile?.userName || '').split(' ')[0];
@@ -105,7 +155,11 @@ export function getNextAgentQuestion(
     const hi = `${hiBase}${firstName ? `, ${firstName}` : ''}!`;
     prefix = hi;
   }
-  return { question: finalQuestion.endsWith('?') ? finalQuestion : `${finalQuestion}?`, stage, greetingPrefix: prefix };
+  return { 
+    question: (finalQuestion + guidanceExtra).endsWith('?') || guidanceExtra ? finalQuestion + guidanceExtra : `${finalQuestion}?`, 
+    stage, 
+    greetingPrefix: prefix 
+  };
 }
 // Perguntas específicas por agente (override por estágio)
 const AGENT_QUESTION_OVERRIDES: Record<string, Partial<Record<QuestionStage, string>>> = {

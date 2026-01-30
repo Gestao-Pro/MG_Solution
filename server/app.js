@@ -619,7 +619,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
     };
     const summarizeHistory = (hist = []) => {
       try {
-        const last = Array.isArray(hist) ? hist.slice(-6) : [];
+        const last = Array.isArray(hist) ? hist.slice(-20) : [];
         return last.map((m) => {
           const who = m.sender === 'agent' ? 'Agente' : 'Usuário';
           return `- ${who}: ${sanitize(m.text || '')}`;
@@ -1007,7 +1007,7 @@ app.post('/api/ai/superboss', ensureJsonBody, requireAuth, limitSuperBoss, async
     };
     const summarizeHistory = (hist = []) => {
       try {
-        const last = Array.isArray(hist) ? hist.slice(-8) : [];
+        const last = Array.isArray(hist) ? hist.slice(-20) : [];
         return last.map((m) => {
           const who = m.sender === 'agent' ? (m.agent?.name || 'Agente') : 'Usuário';
           return `- ${who}: ${sanitize(m.text || '')}`;
