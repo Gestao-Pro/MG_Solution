@@ -83,14 +83,14 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
       </div>
       <div className="container mx-auto px-4 relative z-12 flex flex-col lg:flex-row items-center justify-between gap-12">
         <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start">
-          <div className="mb-0 md:-mb-2 w-full flex justify-center lg:justify-start p-0 overflow-visible">
+          <div className="mb-0 w-full flex justify-center lg:justify-start p-0 overflow-visible">
             <img 
               src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
               alt="GestãoPro Logo" 
-              className="h-20 md:h-[140px] w-auto object-contain mix-blend-screen brightness-80" 
+              className="h-20 md:h-[120px] w-auto object-contain mix-blend-screen brightness-80" 
             />
           </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mt-2 md:-mt-14 mb-2 max-w-2xl">
+          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mt-2 md:-mt-6 mb-2 max-w-2xl">
             Sua Gestão <span className="text-indigo-400">Potencializada</span> por <span className="text-indigo-400">Inteligência Artificial</span>
           </h1>
           <p className="text-xl text-gray-300 mb-10 max-w-xl mx-auto lg:mx-0">
