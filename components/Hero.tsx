@@ -87,7 +87,7 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
             <img 
               src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
               alt="GestãoPro Logo" 
-              className="h-20 md:h-[120px] w-auto object-contain mix-blend-screen brightness-80" 
+              className="h-20 md:h-[380px] w-auto object-contain mix-blend-screen brightness-95" 
             />
           </div>
           <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mt-2 md:-mt-6 mb-2 max-w-2xl">
