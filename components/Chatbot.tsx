@@ -276,11 +276,10 @@ const Chatbot: React.FC = () => {
         <header className="flex items-center justify-between p-4 border-b border-slate-700">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <img src={SUPERBOSS_AVATAR_URL} alt="SuperBoss Avatar" className="w-10 h-10 rounded-full" onError={setFallback} />
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-800"></div>
+              <img src="https://i.postimg.cc/9R26NY5h/Logo6.png" alt="Logo" className="h-6 w-auto brightness-0 invert" />
             </div>
             <div>
-              <h3 className="font-bold text-white">SuperBoss</h3>
+              <h3 className="font-bold text-white">SuperBoss Chat</h3>
               <p className="text-xs text-gray-400">Assistente GestãoPro</p>
             </div>
           </div>

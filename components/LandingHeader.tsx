@@ -26,9 +26,13 @@ export const LandingHeader: React.FC<{ onLoginClick?: () => void }> = ({ onLogin
   return (
     <header className="fixed top-0 left-0 w-full bg-slate-900/80 backdrop-blur-md z-50 shadow-lg">
       <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-        <a href="#home" className="text-2xl font-bold text-white">
-          GestãoPro
-        </a>
+        <a href="#home" className="flex items-center py-1">
+               <img 
+                    src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
+                     alt="GestãoPro Logo" 
+                     className="h-10 md:h-12 w-auto object-contain mix-blend-screen brightness-110" 
+                   />
+              </a>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex space-x-8">

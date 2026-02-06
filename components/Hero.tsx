@@ -81,12 +81,19 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
         {/* Padrão de fundo local para evitar 404 externo */}
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center bg-repeat [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
       </div>
-      <div className="container mx-auto px-6 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
-        <div className="lg:w-1/2 text-center lg:text-left">
-          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">
+      <div className="container mx-auto px-4 relative z-12 flex flex-col lg:flex-row items-center justify-between gap-12">
+        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start">
+          <div className="-mb-2 w-full flex justify-center lg:justify-start p-0 overflow-visible">
+            <img 
+              src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
+              alt="GestãoPro Logo" 
+              className="h-20 md:h-140 w-auto object-contain mix-blend-screen brightness-80" 
+            />
+          </div>
+          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight -mt-14 mb-2 max-w-2xl">
             Sua Gestão <span className="text-indigo-400">Potencializada</span> por <span className="text-indigo-400">Inteligência Artificial</span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-md lg:max-w-none mx-auto lg:mx-0">
+          <p className="text-xl text-gray-300 mb-10 max-w-xl mx-auto lg:mx-0">
             O SuperBoss, seu orquestrador de IA, analisa seu problema e distribui as tarefas para os agentes mais qualificados, garantindo uma solução completa e eficiente para o seu negócio.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">

@@ -39,9 +39,14 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ onSave, initialProfil
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-8 max-w-2xl w-full border border-gray-300 dark:border-gray-700">
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Bem-vindo ao GestãoPro!</h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">Para personalizar sua experiência, precisamos entender melhor seu negócio. Quanto mais detalhes, melhores serão as soluções.</p>
-                <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4 custom-scrollbar">
+                <div className="flex flex-col items-center mb-8">
+                    <img 
+                         src="https://i.postimg.cc/9R26NY5h/Logo6.png" 
+                         alt="GestãoPro Logo" 
+                         className="h-24 w-auto object-contain" 
+                     />
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" htmlFor="userName">Seu Nome</label>

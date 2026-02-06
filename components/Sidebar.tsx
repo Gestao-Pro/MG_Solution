@@ -25,9 +25,12 @@ const areaIcons: Record<AgentArea, React.ComponentType<{ className?: string }>> 
 const Sidebar: React.FC<SidebarProps> = ({ onSelectArea, onSelectSuperBoss, activeArea, activeAgentId, onOpenHistory }) => {
     return (
         <aside className="w-full h-full bg-white dark:bg-gray-900 p-4 flex flex-col border-r border-gray-200 dark:border-gray-700">
-            <div className="mb-8 px-2">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">GestãoPro</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Sua Equipe de IA</p>
+            <div className="mb-8 px-2 flex items-center">
+                <img 
+                     src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
+                     alt="GestãoPro Logo" 
+                     className="h-16 w-auto object-contain" 
+                 />
             </div>
             
             <div className="mb-6">

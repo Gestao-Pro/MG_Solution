@@ -169,12 +169,21 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, user
 
     return (
         <header className="flex-shrink-0 h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4">
-            <IconButton 
-                icon={Menu} 
-                onClick={toggleSidebar} 
-                tooltip="Mostrar/Esconder Menu" 
-                className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-            />
+            <div className="flex items-center gap-2">
+                <IconButton 
+                    icon={Menu} 
+                    onClick={toggleSidebar} 
+                    tooltip="Mostrar/Esconder Menu" 
+                    className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                />
+                <div className="flex items-center ml-2 cursor-pointer" onClick={() => navigate('/')}>
+                    <img 
+                         src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
+                         alt="GestãoPro Logo" 
+                         className="h-12 w-auto object-contain" 
+                     />
+                </div>
+            </div>
             <div className="flex items-center gap-4">
                  <div className="flex items-center gap-3">
                     <div className="text-right hidden sm:block">

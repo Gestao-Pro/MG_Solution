@@ -4,12 +4,16 @@ import { FaLinkedin, FaInstagram, FaFacebook } from 'react-icons/fa';
 export const Footer: React.FC = () => {
   return (
     <footer className="bg-slate-900 text-gray-400 py-10">
-      <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
         {/* Coluna 1: Logo e Descrição */}
-        <div className="space-y-4">
-          <h3 className="text-2xl font-bold text-white">GestãoPro</h3>
-          <p className="text-sm leading-relaxed">
-            Sua plataforma de gestão inteligente com IA, otimizando processos e impulsionando o crescimento do seu negócio.
+        <div className="flex flex-col gap-4 py-4 overflow-visible">
+            <img 
+                src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
+                alt="GestãoPro Logo" 
+                className="h-32 w-auto object-contain block self-start brightness-120" 
+              />
+          <p className="text-gray-400 mt-2">
+            O futuro da gestão empresarial impulsionado por inteligência artificial.
           </p>
           <div className="flex space-x-4">
             <a href="#" className="text-gray-400 hover:text-white transition-colors duration-300">

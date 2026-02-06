@@ -154,9 +154,13 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose, onSuccess }) => {
           </svg>
         </button>
 
-        <div className="text-center">
-          <h2 id="modal-title" className="text-3xl font-extrabold tracking-tight text-white mb-2">Acesse a GestãoPro</h2>
-          <p className="text-gray-400 mb-8">Entre e acelere sua gestão com IA — simples e elegante.</p>
+        <div className="flex flex-col items-center mb-8">
+          <img 
+             src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
+             alt="GestãoPro Logo" 
+             className="h-24 w-auto object-contain brightness-115 contrast-95" 
+           />
+          <h2 id="modal-title" className="text-3xl font-extrabold tracking-tight text-white mt-4">Acesse a GestãoPro</h2>
         </div>
         
         <form onSubmit={handleLogin} className="space-y-6">
