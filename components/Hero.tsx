@@ -76,21 +76,21 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
   };
 
   return (
-    <section id="home" className="relative bg-gradient-to-br from-slate-900 to-slate-950 text-white py-20 md:py-32 overflow-hidden">
-      <div className="absolute inset-0 z-0 opacity-10">
-        {/* Padrão de fundo local para evitar 404 externo */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center bg-repeat [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+    <section id="home" className="relative text-white py-5 md:py-4 overflow-hidden min-h-[350px] flex items-center">
+      {/* Background Image/GIF */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="https://i.postimg.cc/k5b61xWr/VD2.gif" 
+          alt="Background" 
+          className="w-full h-full object-cover object-center"
+        />
+        {/* Overlay para garantir legibilidade apenas na base */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-800/15 to-transparent"></div>
       </div>
-      <div className="container mx-auto px-4 relative z-12 flex flex-col lg:flex-row items-center justify-between gap-12">
-        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start">
-          <div className="mb-0 w-full flex justify-center lg:justify-start p-0 overflow-visible">
-            <img 
-              src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
-              alt="GestãoPro Logo" 
-              className="h-20 md:h-[380px] w-auto object-contain mix-blend-screen brightness-95" 
-            />
-          </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mt-2 md:-mt-6 mb-2 max-w-2xl">
+
+      <div className="container mx-auto px-4 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[400px] md:mt-[450px]">
+          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-4 max-w-2xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
             Sua Gestão <span className="text-indigo-400">Potencializada</span> por <span className="text-indigo-400">Inteligência Artificial</span>
           </h1>
           <p className="text-xl text-gray-300 mb-10 max-w-xl mx-auto lg:mx-0">
