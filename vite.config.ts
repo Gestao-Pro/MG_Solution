@@ -26,6 +26,18 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [react(), tailwindcss()],
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: {
+              'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+              'vendor-icons': ['lucide-react', 'react-icons', '@heroicons/react'],
+              'vendor-utils': ['pdfjs-dist', 'xlsx', 'mammoth', 'date-fns'],
+            },
+          },
+        },
+        chunkSizeWarningLimit: 1000,
+      },
       // Do not expose secret keys to client bundle; backend should use env directly
       resolve: {
         alias: {
