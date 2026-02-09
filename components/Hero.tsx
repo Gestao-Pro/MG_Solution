@@ -78,18 +78,18 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
   return (
     <section id="home" className="relative text-white py-10 md:py-1 overflow-hidden min-h-[600px] md:min-h-screen flex items-center">
       {/* Background Image/GIF */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 bg-[#030712]">
         <img 
           src="https://i.postimg.cc/fT4SxjCF/VD_GIF.gif" 
           alt="Background" 
-          className="w-full h-full object-cover object-[center_5%] sm:object-cover md:object-[center_20px]"
+          className="w-full h-full object-contain object-top md:object-cover md:object-[center_20px]"
         />
         {/* Overlay para garantir legibilidade apenas na base */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-800/10 to-transparent"></div>
       </div>
 
       <div className="container mx-auto px-4 md:px-10 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[320px] sm:mt-[450px] md:mt-[400px]">
+        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[60vw] sm:mt-[450px] md:mt-[400px]">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4 md:mb-16 max-w-2xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
             Sua Gestão <span className="text-indigo-400">Potencializada</span> por <span className="text-indigo-400">Inteligência Artificial</span>
           </h1>
