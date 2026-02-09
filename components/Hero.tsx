@@ -80,17 +80,17 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
       {/* Background Image/GIF */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="https://i.postimg.cc/ZRR5S0cd/VD-GIF.gif" 
+          src="https://i.postimg.cc/fT4SxjCF/VD_GIF.gif" 
           alt="Background" 
-          className="w-full h-full object-cover object-[center_60px] md:object-[center_20px]"
+          className="w-full h-full object-cover object-[0%_20px] sm:object-[15%_60px] md:object-[center_10px]"
         />
         {/* Overlay para garantir legibilidade apenas na base */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-800/15 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-800/10 to-transparent"></div>
       </div>
 
-      <div className="container mx-auto px-8 md:px-16 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[280px] sm:mt-[320px] md:mt-[420px]">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-8 md:mb-16 max-w-2xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+      <div className="container mx-auto px-4 md:px-10 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[550px] sm:mt-[500px] md:mt-[400px]">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-6 md:mb-8 max-w-2xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
             Sua Gestão <span className="text-indigo-400">Potencializada</span> por <span className="text-indigo-400">Inteligência Artificial</span>
           </h1>
           <p className="text-xl text-gray-300 mb-10 max-w-xl mx-auto lg:mx-0">
