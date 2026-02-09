@@ -275,12 +275,13 @@ const Chatbot: React.FC = () => {
       <div className={`fixed bottom-8 right-8 w-[calc(100%-4rem)] max-w-sm h-[70vh] max-h-[600px] bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
         <header className="flex items-center justify-between p-4 border-b border-slate-700">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <img src="https://i.postimg.cc/9R26NY5h/Logo6.png" alt="Logo" className="h-6 w-auto brightness-0 invert" />
+            <div className="relative w-10 h-10">
+              <img src={SUPERBOSS_AVATAR_URL} alt="SuperBoss" className="w-full h-full rounded-full object-cover border border-indigo-500/50" onError={setFallback} />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-slate-800 rounded-full"></span>
             </div>
             <div>
-              <h3 className="font-bold text-white">SuperBoss Chat</h3>
-              <p className="text-xs text-gray-400">Assistente GestãoPro</p>
+              <h3 className="font-bold text-white text-sm">SuperBoss Chat</h3>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider">Online agora</p>
             </div>
           </div>
           <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white" aria-label="Fechar chat">
