@@ -596,13 +596,17 @@ app.post('/api/ai/public-chat', ensureJsonBody, limitSuperBoss, async (req, res)
       return res.status(400).json({ error: 'Mensagem é obrigatória.' });
     }
 
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+    // Prioriza uma chave pública dedicada para evitar esgotar a cota do sistema principal
+    const GEMINI_API_KEY = process.env.PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+    
     if (!GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'GEMINI_API_KEY não configurado no servidor' });
+      console.error('[public-chat] Erro: GEMINI_API_KEY não configurada.');
+      return res.status(500).json({ error: 'Serviço de IA temporariamente indisponível (Erro: Config).' });
     }
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    // Usando gemini-1.5-flash que é estável, rápido e possui uma cota gratuita generosa
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const systemInstruction = `Você é o SuperBoss, o orquestrador de IA da plataforma GestãoPro.
 Sua missão é tirar todas as dúvidas dos visitantes da landing page e mostrar como a GestãoPro pode transformar o negócio deles.
@@ -613,25 +617,26 @@ Sobre a GestãoPro:
 - Áreas atendidas: Estratégia, Vendas, Marketing, Pessoas, Processos e Finanças.
 - Agentes de destaque: Artur (Estratégia), Beatriz (Vendas), Cláudio (Processos), Débora (Marketing), Elias (Finanças), Sofia (RH), entre outros.
 - Planos: 
-  1. Starter (R$49/mês ou R$490/ano): Acesso a agentes essenciais.
+  1. Starter (R$49/mês ou R$490/ano): Acesso a agentes essenciais da sua área.
   2. Pro (R$99/mês ou R$990/ano): Acesso a todos os agentes e recursos avançados.
   3. Premium (R$149/mês ou R$1490/ano): Suporte prioritário e limites estendidos.
-- Diferencial: Não é apenas um chat; é uma ferramenta que executa diagnósticos, cria planos de ação e gera entregáveis (documentos, planilhas, estratégias).
+- Diferencial: Não é apenas um chat; é uma ferramenta que executa diagnósticos, cria planos de ação e gera entregáveis reais (documentos, planilhas, estratégias).
 
 Diretrizes de Resposta:
 - Seja profissional, entusiasmado, prestativo e persuasivo.
-- Responda sempre em Português do Brasil.
+- Responda sempre em Português do Brasil de forma concisa.
 - Se não souber algo específico sobre preços além do citado, sugira que o usuário clique em "Comece Agora" para falar com um consultor.
-- Mantenha as respostas concisas e fáceis de ler no chat.
+- Mantenha as respostas curtas para facilitar a leitura no chat.
 - Use emojis moderadamente.`;
 
-    const history = (chatHistory || []).slice(-10).map(m => ({
+    const history = (chatHistory || []).slice(-8).map(m => ({
       role: m.sender === 'bot' ? 'model' : 'user',
       parts: [{ text: m.text }]
     }));
 
+    // Verifica se o histórico está vazio ou se termina com um papel correto para o Gemini
     const chat = model.startChat({
-      history: history,
+      history: history.length > 0 ? history : [],
       systemInstruction: systemInstruction,
     });
 
@@ -641,8 +646,8 @@ Diretrizes de Resposta:
 
     res.json({ text });
   } catch (error) {
-    console.error('Erro no public-chat:', error?.message || error);
-    res.status(500).json({ error: 'Falha ao processar resposta da IA.' });
+    console.error('[public-chat] Erro ao processar Gemini:', error);
+    res.status(500).json({ error: 'Desculpe, tive um problema ao processar sua resposta. Tente novamente em instantes.' });
   }
 });
 

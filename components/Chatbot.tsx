@@ -101,13 +101,19 @@ const Chatbot: React.FC = () => {
         }),
       });
 
+      if (response.status === 429) {
+        animateBotReply("Muitas mensagens enviadas! Por favor, aguarde um minuto antes de continuar.");
+        return;
+      }
+
       if (!response.ok) throw new Error('Falha na resposta do servidor');
       
       const data = await response.json();
       animateBotReply(data.text || "Desculpe, tive um problema técnico. Pode repetir?");
     } catch (error) {
       console.error('Chat Error:', error);
-      animateBotReply("Desculpe, estou com dificuldade de conexão agora. Por favor, tente novamente em instantes.");
+      animateBotReply("Desculpe, estou com dificuldade de conexão agora. Por favor, verifique sua internet ou tente novamente em instantes.");
+    } finally {
       setIsTyping(false);
     }
   };
