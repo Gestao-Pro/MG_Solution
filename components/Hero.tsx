@@ -1,71 +1,39 @@
 import React, { useRef, useState } from 'react';
 import { SUPERBOSS_AVATAR_URL, SUPERBOSS_VIDEO_URL } from '../constants';
+import { Play } from 'lucide-react';
 
 export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) => {
   const [showPreview, setShowPreview] = useState(false);
+  const [wasClicked, setWasClicked] = useState(false);
   const avatarRef = useRef<HTMLDivElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoUrl = "/videos/SuperBoss.mp4";
 
-  const toEmbedUrl = (href: string) => {
-    try {
-      const u = new URL(href);
-      const host = u.hostname;
-      const prefersReducedMotion = typeof window !== 'undefined' && 'matchMedia' in window
-        ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        : false;
-      if (host.includes('youtube.com') || host.includes('youtu.be')) {
-        let id = '';
-        if (host.includes('youtu.be')) {
-          id = u.pathname.slice(1);
-        } else if (u.pathname.startsWith('/shorts/')) {
-          id = u.pathname.split('/')[2] || '';
-        } else {
-          id = u.searchParams.get('v') || '';
-        }
-        if (id) {
-          const params = new URLSearchParams({
-            autoplay: prefersReducedMotion ? '0' : '1',
-            playsinline: '1',
-            controls: '0',
-            rel: '0',
-            modestbranding: '1',
-            loop: '1',
-            playlist: id,
-            enablejsapi: '1',
-            origin: typeof window !== 'undefined' ? window.location.origin : ''
-          });
-          return `https://www.youtube.com/embed/${id}?${params.toString()}`;
-        }
-      }
-      if (host.includes('canva.com')) {
-        return `${href}${href.includes('?') ? '&' : '?'}embed&autoplay=${prefersReducedMotion ? 0 : 1}&muted=1&loop=1`;
-      }
-      return href;
-    } catch {
-      return href;
-    }
-  };
-  const embedUrl = toEmbedUrl(SUPERBOSS_VIDEO_URL);
-  const isYouTubeEmbed = embedUrl.includes('youtube.com/embed');
-
-  const handleUnmute = () => {
-    if (isYouTubeEmbed && iframeRef.current?.contentWindow) {
-      const target = iframeRef.current.contentWindow;
-      try {
-        target.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
-        target.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-        target.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-        target.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-      } catch (e) {
-        // silencioso: se falhar, usuário pode usar os controles
-      }
+  const handleUnmute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.volume = 1;
+      videoRef.current.play().catch(() => {});
+      setWasClicked(true);
     }
   };
 
-  const handleEnter = () => setShowPreview(true);
-  const handleLeave = () => setShowPreview(false);
-  const handleToggleClick = () => setShowPreview(prev => !prev);
+  const handleEnter = () => {
+    setWasClicked(true); // Attempting unmuted autoplay on hover
+    setShowPreview(true);
+  };
+  
+  const handleLeave = () => {
+    setShowPreview(false);
+    setWasClicked(false);
+  };
+
+  const handleToggleClick = () => {
+    setWasClicked(true);
+    setShowPreview(prev => !prev);
+  };
 
   const handleContainerLeave: React.PointerEventHandler<HTMLDivElement> = (e) => {
     const next = e.relatedTarget as Node | null;
@@ -89,14 +57,17 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
       </div>
 
       <div className="container mx-auto px-4 md:px-10 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[45vw] sm:mt-[450px] md:mt-[450px]">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4 md:mb-16 max-w-2xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-            Sua Gestão <span className="text-indigo-400">Potencializada</span> por <span className="text-indigo-400">Inteligência Artificial</span>
+        <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[45vw] sm:mt-[350px] md:mt-[350px]">
+          <h1 className="hero-title text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold leading-tight mb-3 md:mb-6 max-w-2xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+            Organize seu negócio e ganhe tempo com <span className="text-indigo-400">Inteligência Artificial</span>
           </h1>
-          <p className="text-xl text-gray-300 mb-10 max-w-xl mx-auto lg:mx-0">
-            O SuperBoss, seu orquestrador de IA, analisa seu problema e distribui as tarefas para os agentes mais qualificados, garantindo uma solução completa e eficiente para o seu negócio.
+          <p className="hero-sub text-sm md:text-base text-gray-300 mb-2 max-w-xl mx-auto lg:mx-0">
+            Pare de se perder em tarefas. Organize seu dia, crie conteúdos e tome decisões mais rápido — tudo em um só lugar.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <p className="hero-sub text-xs md:text-sm text-indigo-300 mb-6 font-medium">
+            Economize horas por semana e tenha mais controle do seu negócio.
+          </p>
+          <div className="hero-sub flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
             <button
               type="button"
               onClick={() => onLoginClick?.()}
@@ -108,14 +79,14 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
               href="#how-it-works"
               className="bg-transparent border border-indigo-500 text-indigo-300 font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:bg-indigo-600 hover:text-white"
             >
-              Saiba Mais
+              Ver Como Funciona
             </a>
           </div>
         </div>
         <div className="lg:w-1/2 flex justify-center lg:justify-end">
           <div
             ref={avatarRef}
-            className="relative w-64 h-64 md:w-80 md:h-80"
+            className="relative w-64 h-64 md:w-80 md:h-80 cursor-pointer group"
             onPointerEnter={handleEnter}
             onPointerLeave={handleContainerLeave}
             onMouseEnter={handleEnter}
@@ -125,8 +96,20 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
             <img
               src={SUPERBOSS_AVATAR_URL}
               alt="SuperBoss AI"
-              className="absolute inset-0 w-full h-full rounded-full object-cover shadow-2xl border-4 border-indigo-500 transform transition-transform duration-300"
+              className="absolute inset-0 w-full h-full rounded-full object-cover shadow-2xl border-4 border-indigo-500 transform transition-transform duration-300 group-hover:scale-105"
             />
+            
+            {!showPreview && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute w-20 h-20 border-2 border-white/30 rounded-full animate-pulse-ring"></div>
+                  <div className="relative w-16 h-16 rounded-full flex items-center justify-center shadow-xl animate-pulse-dot">
+                    <Play className="w-10 h-10 text-white/50 ml-1" fill="currentColor" />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div
               ref={popoverRef}
               onPointerLeave={handleLeave}
@@ -135,48 +118,35 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
                 showPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
               }`}
             >
-              <div className="w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-indigo-500">
-                <iframe
-                  title="Apresentação do SuperBoss"
-                  src={showPreview ? embedUrl : undefined}
-                  loading="lazy"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  className="w-full h-full border-0"
-                  ref={iframeRef}
-                  allowFullScreen
-                  sandbox="allow-same-origin allow-scripts allow-popups allow-presentation"
-                />
-                {!showPreview && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={handleToggleClick}
-                      className="bg-black/60 text-white text-sm font-semibold py-2 px-4 rounded-full"
-                    >
-                      Assistir prévia
-                    </button>
-                  </div>
+              <div className="w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-indigo-500 bg-black">
+                {showPreview && (
+                  <video
+                    ref={videoRef}
+                    src={videoUrl}
+                    autoPlay
+                    muted={!wasClicked}
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover"
+                    onCanPlay={() => {
+                      if (wasClicked && videoRef.current) {
+                        videoRef.current.play().catch(() => {
+                           // Se falhar com áudio, tenta mudo
+                           if (videoRef.current) videoRef.current.muted = true;
+                           videoRef.current?.play().catch(() => {});
+                        });
+                      }
+                    }}
+                  />
                 )}
-                {isYouTubeEmbed && showPreview && (
+                {!wasClicked && showPreview && (
                   <button
                     type="button"
                     onClick={handleUnmute}
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-2 px-4 rounded-full shadow-md"
-                    aria-label="Ativar som do vídeo"
+                    className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-indigo-600/80 hover:bg-indigo-700 text-white text-xs font-semibold py-1.5 px-4 rounded-full shadow-md backdrop-blur-sm transition-all"
                   >
                     Ativar som
                   </button>
-                )}
-                {showPreview && (
-                  <a
-                    href={SUPERBOSS_VIDEO_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute top-4 right-4 text-xs text-gray-300 hover:text-white"
-                  >
-                    Abrir no YouTube
-                  </a>
                 )}
               </div>
             </div>
@@ -186,3 +156,5 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
     </section>
   );
 };
+
+export default Hero;

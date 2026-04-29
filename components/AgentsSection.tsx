@@ -4,28 +4,20 @@ import { Agent } from '../types';
 import AnimatedElement from './AnimatedElement';
 import Avatar from './Avatar';
 import { Play, X } from 'lucide-react';
+import gsap from 'gsap';
 
 const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [wasClicked, setWasClicked] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoUrl = `/videos/agents/${agent.id}.mp4`;
   const isTouch = typeof window !== 'undefined' && 'matchMedia' in window ? window.matchMedia('(hover: none)').matches : false;
 
-  const videoId = VIDEO_IDS[agent.id];
-  const prefersReducedMotion = typeof window !== 'undefined' && 'matchMedia' in window
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    : false;
-  const originParam = typeof window !== 'undefined' ? window.location.origin : '';
-  const embedUrl = videoId
-    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=${prefersReducedMotion ? 0 : 1}&controls=1&rel=0&modestbranding=1&playsinline=1&loop=1&playlist=${videoId}&enablejsapi=1&origin=${encodeURIComponent(originParam)}`
-    : '';
-
   const handleEnter = () => {
-    // Verifica se o dispositivo suporta hover (mouse)
-    // Se não suportar (touch), não ativa no hover, exige clique
     if (typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches) {
       return;
     }
@@ -34,14 +26,14 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
     }
-    if (!videoId) return;
+    setWasClicked(true);
     setShowPreview(true);
   };
 
   const handleLeave = () => {
-    if (!videoId) return;
     setShowPreview(false);
     setIsMuted(true);
+    setWasClicked(false);
   };
 
   const handleCardLeave: React.PointerEventHandler<HTMLDivElement> = (e) => {
@@ -61,27 +53,24 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   };
 
   const handleToggleClick = () => {
-    if (!videoId) return;
+    setWasClicked(true);
     setShowPreview(prev => !prev);
   };
 
   const handleUnmute = () => {
-    // Usa a API do YouTube via postMessage para ativar som e tocar o vídeo
-    try {
-      const target = iframeRef.current?.contentWindow;
-      if (target) {
-        target.postMessage(JSON.stringify({ event: 'command', func: 'unMute', args: [] }), '*');
-        target.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
-        target.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
-      }
-    } catch {}
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.volume = 1;
+      videoRef.current.play().catch(() => {});
+    }
     setIsMuted(false);
+    setWasClicked(true);
   };
 
   return (
     <div
       ref={cardRef}
-      className="relative bg-slate-800/60 p-6 rounded-xl border border-slate-700 text-center transition-all duration-300 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-900/50 transform hover:-translate-y-2 h-full"
+      className="agent-card relative bg-slate-800/60 p-4 rounded-xl border border-slate-700 text-center transition-all duration-300 hover:border-indigo-500/50 hover:shadow-2xl hover:shadow-indigo-900/50 transform hover:-translate-y-2 h-full cursor-pointer group"
       onPointerEnter={isTouch ? undefined : handleEnter}
       onPointerLeave={isTouch ? undefined : handleCardLeave}
       onFocus={handleEnter}
@@ -90,123 +79,145 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
       tabIndex={0}
       aria-label={`Mostrar prévia do vídeo do agente ${agent.name}`}
     >
-      <div className="relative w-24 h-24 rounded-full mx-auto mb-4 border-4 border-slate-600 overflow-hidden group-hover:border-indigo-500 transition-colors">
+      <div className="relative w-16 h-16 rounded-full mx-auto mb-3 border-4 border-slate-600 overflow-hidden group-hover:border-indigo-500 transition-colors">
         <Avatar agent={agent} />
-        {/* Indicador de Play para Mobile/Touch */}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/20 md:hidden">
-           <Play className="w-8 h-8 text-white/90 drop-shadow-lg" fill="currentColor" />
-        </div>
-      </div>
-      <h3 className="text-xl font-bold text-white">{agent.name}</h3>
-      <p className="text-indigo-400 text-sm font-medium mb-2">{agent.area}</p>
-      <p className="text-gray-400 text-sm">{agent.specialty}</p>
-
-      {videoId && (
-        <div
-          ref={popoverRef}
-          onPointerLeave={isTouch ? undefined : handleLeave}
-          className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 md:absolute md:inset-0 md:-m-2 md:z-50 md:bg-transparent md:p-0 transition-opacity duration-200 ease-out ${
-            showPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-          onClick={(e) => {
-             // Fecha ao clicar no fundo escuro em mobile
-             if (e.target === popoverRef.current) handleLeave();
-          }}
-        >
-          <div className={`relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden p-2 transform transition-transform duration-200 ease-out w-full max-w-lg md:w-[calc(100%+24px)] ${showPreview ? 'scale-100' : 'scale-95'}`}>
-            
-            {/* Botão de fechar para Mobile */}
-            <button 
-              onClick={(e) => { e.stopPropagation(); handleLeave(); }}
-              className="absolute top-2 right-2 z-10 p-1 bg-black/50 rounded-full text-white md:hidden hover:bg-black/70"
-            >
-              <X size={20} />
-            </button>
-
-            <div className="mx-auto" style={{ aspectRatio: '16 / 9' }}>
-              <iframe
-                title={`Apresentação do agente ${agent.name}`}
-                src={showPreview ? embedUrl : undefined}
-                loading="lazy"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerPolicy="strict-origin-when-cross-origin"
-                className="w-full h-full border-0 rounded"
-                ref={iframeRef}
-                allowFullScreen
-                sandbox="allow-same-origin allow-scripts allow-popups allow-presentation"
-              />
+        
+        {!showPreview && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute w-10 h-10 border border-white/30 rounded-full animate-pulse-ring"></div>
+              <div className="relative w-8 h-8 rounded-full flex items-center justify-center shadow-lg animate-pulse-dot">
+                <Play className="w-5 h-5 text-white/60 ml-0.5" fill="currentColor" />
+              </div>
             </div>
-            <div className="flex items-center justify-between px-1 py-2 md:px-3">
-              <span className="text-xs text-gray-300" aria-live="polite">Prévia</span>
+          </div>
+        )}
+      </div>
+      <h3 className="text-lg font-bold text-white">{agent.name}</h3>
+      <p className="text-indigo-400 text-xs font-medium mb-1">{agent.area}</p>
+      <p className="text-gray-400 text-xs">{agent.specialty}</p>
+
+      <div
+        ref={popoverRef}
+        onPointerLeave={isTouch ? undefined : handleLeave}
+        className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 md:absolute md:inset-0 md:-m-2 md:z-50 md:bg-transparent md:p-0 transition-opacity duration-200 ease-out ${
+          showPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={(e) => {
+            if (e.target === popoverRef.current) handleLeave();
+        }}
+      >
+        <div className={`relative bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden p-2 transform transition-transform duration-200 ease-out w-full max-w-lg md:w-[calc(100%+24px)] ${showPreview ? 'scale-100' : 'scale-95'}`}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); handleLeave(); }}
+            className="absolute top-2 right-2 z-10 p-1 bg-black/50 rounded-full text-white md:hidden hover:bg-black/70"
+          >
+            <X size={20} />
+          </button>
+          <div className="mx-auto bg-black rounded" style={{ aspectRatio: '16 / 9' }}>
+            {showPreview && (
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                autoPlay
+                muted={!wasClicked}
+                loop
+                playsInline
+                className="w-full h-full object-cover rounded"
+                onCanPlay={() => {
+                  if (wasClicked && videoRef.current) {
+                    videoRef.current.play().catch(() => {
+                      if (videoRef.current) videoRef.current.muted = true;
+                      videoRef.current?.play().catch(() => {});
+                    });
+                  }
+                }}
+              />
+            )}
+          </div>
+          <div className="flex items-center justify-between px-1 py-2 md:px-3">
+            <span className="text-xs text-gray-300" aria-live="polite">Prévia</span>
+            {!wasClicked && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); handleUnmute(); }}
-                className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded"
+                className="text-xs bg-indigo-600/80 hover:bg-indigo-700 text-white px-2 py-1 rounded transition-colors"
                 aria-label="Ativar som do vídeo"
               >
                 Ativar som
               </button>
-            </div>
-            {!showPreview && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleToggleClick(); }}
-                  className="bg-black/60 text-white text-xs font-semibold py-1.5 px-3 rounded-full"
-                >
-                  Assistir prévia
-                </button>
-              </div>
             )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 const AgentsSection: React.FC = () => {
   const [activeArea, setActiveArea] = useState<string>(AGENT_AREAS[0]);
-
+  const gridRef = useRef<HTMLDivElement>(null);
   const areas = AGENT_AREAS;
-
   const filteredAgents = AGENTS.filter(agent => agent.area === activeArea);
 
+  useEffect(() => {
+    if (gridRef.current) {
+      const cardWrappers = gridRef.current.children;
+      if (cardWrappers.length > 0) {
+        gsap.fromTo(cardWrappers, 
+          { opacity: 0, x: 20, scale: 0.98 },
+          { 
+            opacity: 1, 
+            x: 0, 
+            scale: 1, 
+            duration: 0.6, 
+            stagger: 0.06, 
+            ease: "power3.out",
+            force3D: true,
+            clearProps: "transform,opacity" 
+          }
+        );
+      }
+    }
+  }, [activeArea]);
+
   return (
-    <section id="agents" className="py-20 md:py-32 bg-slate-900/50 overflow-hidden">
+    <section id="agents" className="reveal py-20 md:py-32 bg-slate-900/50 overflow-hidden">
       <div className="container mx-auto px-6">
         <AnimatedElement className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Conheça seu Time de Especialistas Virtuais</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Áreas em que a IA pode ajudar seu negócio</h2>
           <p className="text-lg text-gray-400">
-            Nossos agentes de IA são especialistas em suas respectivas áreas, prontos para impulsionar cada setor do seu negócio.
+            O GestãoPro atua em diferentes áreas para ajudar você a crescer com mais organização e eficiência.
           </p>
         </AnimatedElement>
 
-        <AnimatedElement delay={200} className="flex flex-wrap justify-center gap-2 md:gap-4 mb-12">
+        <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-12">
           {areas.map(area => (
             <button
               key={area}
               onClick={() => setActiveArea(area)}
               className={`py-2 px-4 rounded-lg font-semibold transition-all duration-300 ${
                 activeArea === area
-                  ? 'bg-indigo-600 text-white shadow-lg'
+                  ? 'bg-indigo-600 text-white shadow-lg scale-105'
                   : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
               }`}
             >
               {area}
             </button>
           ))}
-        </AnimatedElement>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {filteredAgents.map((agent, index) => (
-             <AnimatedElement key={agent.name} delay={index * 100}>
+        <div 
+          ref={gridRef}
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+        >
+          {filteredAgents.map((agent) => (
+            <div key={agent.name}>
               <AgentCard agent={agent} />
-            </AnimatedElement>
+            </div>
           ))}
         </div>
       </div>
-      
     </section>
   );
 };

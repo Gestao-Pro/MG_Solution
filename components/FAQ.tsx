@@ -10,7 +10,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b border-slate-700 py-4">
+    <div className="faq-item border-b border-slate-700 py-4">
       <button
         className="flex justify-between items-center w-full text-left text-lg font-semibold text-white focus:outline-none"
         onClick={() => setIsOpen(!isOpen)}
@@ -30,31 +30,31 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
 export const FAQ: React.FC = () => {
   const faqs = [
     {
-      question: "O que é a GestãoPro?",
-      answer: "A GestãoPro é uma plataforma de gestão inteligente que utiliza inteligência artificial para otimizar processos e auxiliar na tomada de decisões estratégicas para pequenas e médias empresas.",
+      question: "Preciso saber usar Inteligência Artificial?",
+      answer: "Não! O GestãoPro foi feito para ser simples e intuitivo. Você conversa com a IA de forma natural, como se estivesse falando com um consultor.",
     },
     {
-      question: "Como o SuperBoss funciona?",
-      answer: "O SuperBoss é o nosso orquestrador de IA. Ele analisa o seu problema, identifica as necessidades e distribui as tarefas para os agentes de IA mais qualificados, garantindo uma solução completa e eficiente.",
+      question: "Funciona para pequenos negócios?",
+      answer: "Com certeza. A plataforma foi desenhada especificamente para atender MEIs, micro e pequenas empresas que precisam de organização e eficiência.",
     },
     {
-      question: "Quais tipos de agentes de IA a GestãoPro oferece?",
-      answer: "Oferecemos agentes especializados em diversas áreas, como Estratégia, Vendas, Marketing, Pessoas, Processos e Finanças. Cada um é treinado para resolver desafios específicos da sua área.",
+      question: "Consigo usar sozinho?",
+      answer: "Sim. A ferramenta orienta você em cada passo, sugerindo soluções e planos de ação práticos para o seu dia a dia.",
     },
     {
-      question: "A GestãoPro é adequada para o meu tipo de negócio?",
-      answer: "Sim! A GestãoPro é ideal para MEIs, micro e pequenas empresas que buscam otimizar sua gestão, aumentar a produtividade e tomar decisões mais assertivas com o apoio da inteligência artificial.",
+      question: "Em quanto tempo vejo resultados?",
+      answer: "Muitos usuários percebem ganho de tempo e clareza logo no primeiro dia, ao organizar suas tarefas e receber as primeiras orientações estratégicas.",
     },
     {
-      question: "Como posso começar a usar a GestãoPro?",
-      answer: "É simples! Clique no botão 'Comece Agora' em nossa página, preencha o formulário de contato e nossa equipe entrará em contato para apresentar uma solução personalizada para o seu negócio.",
+      question: "Serve para o meu tipo de negócio?",
+      answer: "Sim. Nossos agentes cobrem áreas universais como Vendas, Marketing, Finanças e Processos, adaptando as sugestões à sua realidade específica.",
     },
   ];
 
   return (
-    <section id="faq" className="py-20 bg-slate-950 text-white">
+    <section id="faq" className="reveal py-20 bg-slate-950 text-white">
       <div className="container mx-auto px-6">
-        <h2 className="text-4xl font-bold text-center mb-12 text-indigo-400">Perguntas Frequentes</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-center mb-12 text-indigo-400">Perguntas Frequentes</h2>
         <div className="max-w-3xl mx-auto">
           {faqs.map((faq, index) => (
             <FAQItem key={index} question={faq.question} answer={faq.answer} />

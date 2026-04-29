@@ -81,11 +81,12 @@ const Plans: React.FC = () => {
   };
 
   return (
-    <section id="plans" className="py-20 md:py-32 overflow-hidden">
+    <section id="plans" className="reveal py-20 md:py-32 overflow-hidden">
       <div className="container mx-auto px-6">
         <AnimatedElement className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Planos Simples e Transparentes</h2>
-          <p className="text-lg text-gray-400">Escolha o plano ideal para o seu momento e comece agora.</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Planos simples e transparentes</h2>
+          <p className="text-base md:text-lg text-gray-400">Escolha o plano ideal e comece a economizar horas no seu dia.</p>
+          <p className="text-indigo-400 font-bold mt-4 text-sm md:text-base">Menos tempo em tarefas. Mais tempo para crescer.</p>
         </AnimatedElement>
         {error && (
           <div className="text-center mb-6 text-yellow-500">{error}</div>
@@ -109,7 +110,7 @@ const Plans: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <AnimatedElement>
-            <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20 hover:border-indigo-500/50">
               <h3 className="text-xl font-semibold text-white">Starter</h3>
               {starter?.productName && (
                 <p className="text-xs text-gray-400">{starter.productName}{starter?.nickname ? ` · ${starter.nickname}` : ''}</p>
@@ -123,7 +124,7 @@ const Plans: React.FC = () => {
                 <li>Agentes adicionais como add-on (preço por especialidade)</li>
               </ul>
               <div className="mt-4 flex items-center gap-3">
-                <button onClick={() => onCtaClick('starter')} className="inline-block px-4 py-2 rounded bg-yellow-600 text-white hover:bg-yellow-700">Assinar Starter</button>
+                <button onClick={() => onCtaClick('starter')} className="inline-block px-4 py-2 rounded bg-yellow-600 text-white hover:bg-yellow-700">Começar agora</button>
                 {cycle==='yearly' && hasYearly && discountPercent('starter') && (
                   <span className="text-xs text-green-400" title="Economia: (12 × preço mensal − preço anual) ÷ (12 × preço mensal)">Economize {discountPercent('starter')}%</span>
                 )}
@@ -131,7 +132,7 @@ const Plans: React.FC = () => {
             </div>
           </AnimatedElement>
           <AnimatedElement delay={100}>
-            <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20 hover:border-indigo-500/50">
               <h3 className="text-xl font-semibold text-white">Pro</h3>
               {pro?.productName && (
                 <p className="text-xs text-gray-400">{pro.productName}{pro?.nickname ? ` · ${pro.nickname}` : ''}</p>
@@ -148,7 +149,7 @@ const Plans: React.FC = () => {
                 <li>Agentes adicionais como add-on (preço por especialidade)</li>
               </ul>
               <div className="mt-4 flex items-center gap-3">
-                <button onClick={() => onCtaClick('pro')} className="inline-block px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700">Assinar Pro</button>
+                <button onClick={() => onCtaClick('pro')} className="inline-block px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700">Quero mais produtividade</button>
                 {cycle==='yearly' && hasYearly && discountPercent('pro') && (
                   <span className="text-xs text-green-400" title="Economia: (12 × preço mensal − preço anual) ÷ (12 × preço mensal)">Economize {discountPercent('pro')}%</span>
                 )}
@@ -156,7 +157,7 @@ const Plans: React.FC = () => {
             </div>
           </AnimatedElement>
           <AnimatedElement delay={200}>
-            <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
+            <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20 hover:border-indigo-500/50">
               <h3 className="text-xl font-semibold text-white">Premium</h3>
               {premium?.productName && (
                 <p className="text-xs text-gray-400">{premium.productName}{premium?.nickname ? ` · ${premium.nickname}` : ''}</p>
@@ -171,7 +172,7 @@ const Plans: React.FC = () => {
                 <li>Agentes adicionais como add-on (preço por especialidade)</li>
               </ul>
               <div className="mt-4 flex items-center gap-3">
-                <button onClick={() => onCtaClick('premium')} className="inline-block px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700">Assinar Premium</button>
+                <button onClick={() => onCtaClick('premium')} className="inline-block px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700">Escalar meu negócio</button>
                 {cycle==='yearly' && hasYearly && premiumYearly && premium && (
                   <span className="text-xs text-green-400" title="Economia anual vs mensal">
                     Economize {(() => {

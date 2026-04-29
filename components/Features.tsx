@@ -26,15 +26,38 @@ const features = [
 ];
 
 export const Features: React.FC = () => {
+  const featureData = [
+    {
+      title: "Organização inteligente",
+      description: "Tenha controle das suas tarefas e prioridades sem se perder.",
+      icon: CheckCircleIcon,
+    },
+    {
+      title: "Criação com IA",
+      description: "Gere ideias, conteúdos e soluções com muito mais rapidez.",
+      icon: CheckCircleIcon,
+    },
+    {
+      title: "Sugestões para o seu negócio",
+      description: "Receba orientações práticas adaptadas à sua realidade.",
+      icon: CheckCircleIcon,
+    },
+    {
+      title: "Melhoria contínua",
+      description: "Aprimore sua gestão com o uso constante da plataforma.",
+      icon: CheckCircleIcon,
+    },
+  ];
+
   return (
-    <section id="features" className="py-20 bg-gradient-to-b from-slate-900 to-slate-950 text-white">
+    <section id="features" className="reveal py-20 bg-gradient-to-b from-slate-900 to-slate-950 text-white">
       <div className="container mx-auto px-6 text-center">
-        <h2 className="text-4xl font-bold mb-6 text-indigo-400">Recursos Poderosos para o Seu Negócio</h2>
-        <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
-          A GestãoPro combina a inteligência artificial mais avançada com uma orquestração inteligente para transformar a maneira como você gerencia sua empresa.
+        <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-indigo-400">Recursos que facilitam sua gestão</h2>
+        <p className="text-lg text-gray-300 mb-12 max-w-2xl mx-auto">
+          Tudo o que você precisa para organizar, otimizar e crescer seu negócio em um só lugar.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, index) => (
+          {featureData.map((feature, index) => (
             <FeatureCard
               key={index}
               title={feature.title}

@@ -143,43 +143,43 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose, onSuccess }) => {
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full max-w-md p-8 m-4 bg-slate-800/30 border border-slate-700 rounded-3xl shadow-2xl shadow-indigo-700/90 ring-1 ring-white/20">
+      <div className="relative w-full max-w-sm p-6 m-4 bg-slate-800/30 border border-slate-700 rounded-3xl shadow-2xl shadow-indigo-700/90 ring-1 ring-white/20">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
           aria-label="Fechar modal"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-6">
           <img 
              src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
              alt="GestãoPro Logo" 
-             className="h-24 w-auto object-contain brightness-115 contrast-95" 
+             className="h-16 w-auto object-contain brightness-115 contrast-95" 
            />
-          <h2 id="modal-title" className="text-3xl font-extrabold tracking-tight text-white mt-4">Acesse a GestãoPro</h2>
+          <h2 id="modal-title" className="text-xl font-extrabold tracking-tight text-white mt-3">Acesse a GestãoPro</h2>
         </div>
         
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+            <label htmlFor="email" className="block text-xs font-medium text-gray-300 mb-1.5">Email</label>
             <input 
               type="email" 
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg py-2 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg py-2 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="seuemail@exemplo.com"
             />
           </div>
           <div>
             <div className="flex justify-between items-baseline">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">Senha</label>
-                <a href="#" className="text-sm text-indigo-400 hover:text-indigo-300">Esqueceu a senha?</a>
+                <label htmlFor="password" className="block text-xs font-medium text-gray-300 mb-1.5">Senha</label>
+                <a href="#" className="text-xs text-indigo-400 hover:text-indigo-300">Esqueceu a senha?</a>
             </div>
             <input 
               type="password" 
@@ -187,23 +187,23 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose, onSuccess }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg py-2 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg py-2 px-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="••••••••"
             />
           </div>
           <div>
-            <button type="submit" className="w-full bg-indigo-600 text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900">
+            <button type="submit" className="w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900">
               {isRegister ? 'Cadastrar' : 'Entrar'}
             </button>
           </div>
         </form>
 
-        <div className="relative my-6">
+        <div className="relative my-4">
           <div className="absolute inset-0 flex items-center" aria-hidden="true">
             <div className="w-full border-t border-slate-700"></div>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-slate-900 text-gray-400">OU</span>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-2 bg-slate-900 text-gray-400 uppercase tracking-widest">OU</span>
           </div>
         </div>
         
@@ -270,7 +270,7 @@ const Login: React.FC<LoginProps> = ({ isOpen, onClose, onSuccess }) => {
           )}
         </div>
 
-        <p className="mt-8 text-center text-sm text-gray-400">
+        <p className="mt-6 text-center text-xs text-gray-400">
           {isRegister ? 'Já tem uma conta?' : 'Não tem uma conta?'}{' '}
           <button
             type="button"

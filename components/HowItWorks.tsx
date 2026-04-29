@@ -8,7 +8,7 @@ interface StepCardProps {
 }
 
 const StepCard: React.FC<StepCardProps> = ({ icon: Icon, title, description }) => (
-  <div className="bg-slate-800/50 p-8 rounded-lg border border-slate-700 text-center transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+  <div className="bg-slate-800/50 p-8 rounded-lg border border-slate-700 text-center transform transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-500/30">
     <div className="bg-indigo-600/20 p-4 rounded-full inline-flex items-center justify-center mb-6">
       <Icon className="h-8 w-8 text-indigo-400" />
     </div>
@@ -37,16 +37,28 @@ export const HowItWorks: React.FC = () => {
   ];
 
   return (
-    <section id="how-it-works" className="py-20 bg-slate-950 text-white">
+    <section id="how-it-works" className="reveal py-12 bg-slate-950 text-white">
       <div className="container mx-auto px-6 text-center">
-        <h2 className="text-4xl font-bold mb-6 text-indigo-400">Como a GestãoPro Funciona</h2>
-        <p className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
-          Transforme seus desafios em soluções eficientes em apenas três passos simples com a ajuda da nossa inteligência artificial.
+        <h2 className="text-xl sm:text-2xl font-bold mb-3 text-indigo-400">Como o GestãoPro funciona</h2>
+        <p className="text-base text-gray-300 mb-8 max-w-xl mx-auto">
+          Em poucos passos, você organiza seu negócio e ganha mais produtividade no dia a dia.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {steps.map((step, index) => (
-            <StepCard key={index} icon={step.icon} title={step.title} description={step.description} />
-          ))}
+          <StepCard 
+            icon={LightBulbIcon} 
+            title="1. Diga o que você precisa resolver" 
+            description="Descreva sua tarefa, ideia ou problema de forma simples." 
+          />
+          <StepCard 
+            icon={ShareIcon} 
+            title="2. A IA organiza e sugere soluções" 
+            description="Receba sugestões inteligentes para melhorar sua organização e produtividade." 
+          />
+          <StepCard 
+            icon={RocketLaunchIcon} 
+            title="3. Execute com mais rapidez" 
+            description="Aplique as soluções e economize tempo no seu dia a dia." 
+          />
         </div>
       </div>
     </section>

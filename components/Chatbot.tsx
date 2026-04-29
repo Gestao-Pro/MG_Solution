@@ -264,7 +264,7 @@ const Chatbot: React.FC = () => {
           )}
           <button
             onClick={() => setIsOpen(true)}
-            className="bg-slate-800 rounded-full w-20 h-20 flex items-center justify-center shadow-2xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 transform hover:scale-110 transition-all duration-300"
+            className="chatbot-float bg-slate-800 rounded-full w-20 h-20 flex items-center justify-center shadow-2xl hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500 transform hover:scale-110 transition-all duration-300"
             aria-label="Abrir chat"
           >
             <img src={SUPERBOSS_AVATAR_URL} alt="Abrir Chat" className="w-16 h-16 rounded-full object-cover" onError={setFallback} />
