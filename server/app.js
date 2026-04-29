@@ -91,7 +91,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
 
   // Lógica de manipulação de eventos do webhook...
   // (O resto da sua lógica de webhook vai aqui)
-  
+
   res.status(200).json({ received: true });
 });
 
@@ -128,13 +128,13 @@ const fetchImageAsDataUrl = (url, maxRedirects = 3) => new Promise((resolve, rej
         res.on('end', () => {
           const buffer = Buffer.concat(chunks);
           if (buffer.length < 100) {
-              reject(new Error(`Buffer muito pequeno para ser uma imagem válida: ${buffer.length} bytes`));
-              return;
+            reject(new Error(`Buffer muito pequeno para ser uma imagem válida: ${buffer.length} bytes`));
+            return;
           }
           const bufferStr = buffer.toString('utf8', 0, Math.min(buffer.length, 200));
           if (bufferStr.includes('<html') || bufferStr.includes('<!doctype') || bufferStr.includes('<body')) {
-              reject(new Error(`Conteúdo parece ser HTML, não imagem.`));
-              return;
+            reject(new Error(`Conteúdo parece ser HTML, não imagem.`));
+            return;
           }
           const mime = contentType.split(';')[0].trim();
           const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
@@ -142,8 +142,8 @@ const fetchImageAsDataUrl = (url, maxRedirects = 3) => new Promise((resolve, rej
           const isGif = buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38;
           const isWebp = buffer.length >= 12 && buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
           if (!isPng && !isJpeg && !isGif && !isWebp && !contentType.startsWith('image/svg+xml')) {
-              reject(new Error(`Conteúdo não é um formato de imagem reconhecido ou SVG: ${contentType}`));
-              return;
+            reject(new Error(`Conteúdo não é um formato de imagem reconhecido ou SVG: ${contentType}`));
+            return;
           }
           const base64 = buffer.toString('base64');
           resolve(`data:${mime};base64,${base64}`);
@@ -183,7 +183,7 @@ const storeFile = path.join(storePath, 'store.json');
 try {
   if (!fs.existsSync(storePath)) fs.mkdirSync(storePath, { recursive: true });
   if (!fs.existsSync(storeFile)) fs.writeFileSync(storeFile, JSON.stringify({ users: {}, analytics: [] }, null, 2));
-} catch {}
+} catch { }
 
 const readStore = () => {
   try {
@@ -197,7 +197,7 @@ const readStore = () => {
 const writeStore = (db) => {
   try {
     fs.writeFileSync(storeFile, JSON.stringify(db || { users: {}, analytics: [] }, null, 2));
-  } catch {}
+  } catch { }
 };
 
 const ensureStoreShape = () => {
@@ -311,7 +311,7 @@ app.get('/api/pricing', async (req, res) => {
     premium_yearly: PREMIUM_PRICE_YEARLY || null,
     nodeEnv: (process.env.NODE_ENV || 'dev')
   };
-  try { console.log('[pricing/env]', debugEnv); } catch {}
+  try { console.log('[pricing/env]', debugEnv); } catch { }
   // Simple local fallback pricing for development or error cases
   const buildMockPricing = () => {
     const mk = (id, amount, currency = 'brl', interval = 'month') => ({ id, amount, currency, interval });
@@ -335,7 +335,7 @@ app.get('/api/pricing', async (req, res) => {
     const missingSecret = !STRIPE_SECRET_KEY || STRIPE_SECRET_KEY.trim() === '' || STRIPE_SECRET_KEY.trim() === 'sk_test_';
     const noIds = !STARTER_PRICE && !PRO_PRICE && !PREMIUM_PRICE && !STARTER_PRICE_YEARLY && !PRO_PRICE_YEARLY && !PREMIUM_PRICE_YEARLY;
     const notProd = (process.env.NODE_ENV || '').toLowerCase() !== 'production';
-    try { console.log('[pricing/mock-check]', { missingSecret, noIds, notProd }); } catch {}
+    try { console.log('[pricing/mock-check]', { missingSecret, noIds, notProd }); } catch { }
     return missingSecret || (notProd && noIds);
   };
 
@@ -458,7 +458,7 @@ app.post('/api/analytics', (req, res) => {
 // Basic analytics endpoint to record landing events (CTA clicks, toggles)
 app.post('/api/analytics/event', ensureJsonBody, async (req, res) => {
   try {
-    try { console.log('[analytics/event] ct=', req.headers['content-type'], 'bodyType=', typeof req.body); } catch {}
+    try { console.log('[analytics/event] ct=', req.headers['content-type'], 'bodyType=', typeof req.body); } catch { }
     const body = (Buffer.isBuffer(req.body))
       ? (() => { try { return JSON.parse(req.body.toString('utf8')); } catch { return {}; } })()
       : (typeof req.body === 'string'
@@ -598,58 +598,87 @@ app.post('/api/ai/public-chat', ensureJsonBody, limitSuperBoss, async (req, res)
 
     // Prioriza uma chave pública dedicada para evitar esgotar a cota do sistema principal
     const GEMINI_API_KEY = process.env.PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
-    
+
     if (!GEMINI_API_KEY) {
       console.error('[public-chat] Erro: GEMINI_API_KEY não configurada.');
       return res.status(500).json({ error: 'Serviço de IA temporariamente indisponível (Erro: Config).' });
     }
 
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    // Usando gemini-1.5-flash que é estável, rápido e possui uma cota gratuita generosa
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const systemInstruction = `Você é o SuperBoss, o Diretor Comercial e Orquestrador de IA da GestãoPro.
+Sua missão é transformar visitantes em clientes através de uma Venda Consultiva de alta performance.
 
-    const systemInstruction = `Você é o SuperBoss, o orquestrador de IA da plataforma GestãoPro.
-Sua missão é tirar todas as dúvidas dos visitantes da landing page e mostrar como a GestãoPro pode transformar o negócio deles.
+### SUA PERSONALIDADE E ESTRATÉGIA:
+Você não é apenas um chatbot, você é um Consultor Estratégico. Siga estas 3 fases conforme a conversa avança:
 
-Sobre a GestãoPro:
-- É uma plataforma de gestão aumentada por IA com mais de 30 agentes especialistas.
-- O SuperBoss (você) é o cérebro que entende o problema do cliente e ativa os agentes certos.
-- Áreas atendidas: Estratégia, Vendas, Marketing, Pessoas, Processos e Finanças.
-- Agentes de destaque: Artur (Estratégia), Beatriz (Vendas), Cláudio (Processos), Débora (Marketing), Elias (Finanças), Sofia (RH), entre outros.
-- Planos: 
-  1. Starter (R$49/mês ou R$490/ano): Acesso a agentes essenciais da sua área.
-  2. Pro (R$99/mês ou R$990/ano): Acesso a todos os agentes e recursos avançados.
-  3. Premium (R$149/mês ou R$1490/ano): Suporte prioritário e limites estendidos.
-- Diferencial: Não é apenas um chat; é uma ferramenta que executa diagnósticos, cria planos de ação e gera entregáveis reais (documentos, planilhas, estratégias).
+FASE 1 (Início): EMPATIA E DIAGNÓSTICO
+- Foque 100% em resolver a dúvida técnica do usuário com clareza e autoridade.
+- Valide a dor do cliente (ex: "Entendo perfeitamente como a falta de controle financeiro tira o sono do empresário...").
+- Forneça valor imediato e gratuito.
 
-Diretrizes de Resposta:
-- Seja profissional, entusiasmado, prestativo e persuasivo.
+FASE 2 (Meio): TRANSIÇÃO E DESEJO
+- Comece a introduzir gatilhos mentais (Prova Social, Autoridade).
+- Mostre como a GestãoPro automatiza a solução que você acabou de dar.
+- Cite agentes especialistas (Artur, Beatriz, Cláudio, Elias, Sofia).
+
+FASE 3 (Final): FECHAMENTO E CONVERSÃO
+- Use gatilhos de Escassez e Urgência.
+- Recomende o plano ideal baseado na conversa.
+- Convide para o botão "Comece Agora".
+
+### CONHECIMENTO DOS PLANOS:
+- PLANO STARTER (R$99/mês ou R$950/ano): Para autônomos e pequenos negócios que precisam de 5 a 7 agentes.
+- PLANO PRO (R$249/mês ou R$2.390/ano): O mais vendido. 22 agentes especialistas, SuperBoss (modo leve) e foco em escala.
+- PLANO PREMIUM (R$399/mês ou R$3.830/ano): Performance máxima. Todos os 30+ agentes, SuperBoss ilimitado e suporte prioritário.
+
+### REGRAS CRÍTICAS:
 - Responda sempre em Português do Brasil de forma concisa.
-- Se não souber algo específico sobre preços além do citado, sugira que o usuário clique em "Comece Agora" para falar com um consultor.
-- Mantenha as respostas curtas para facilitar a leitura no chat.
+- Se o usuário achar caro, foque no ROI: "O investimento se paga em dias com o tempo que você economiza".
 - Use emojis moderadamente.`;
 
-    const history = (chatHistory || []).slice(-8).map(m => ({
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    // Sincronizando com o modelo que já funciona no resto do seu sistema
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: systemInstruction
+    });
+
+    const mappedHistory = (chatHistory || []).map(m => ({
       role: m.sender === 'bot' ? 'model' : 'user',
       parts: [{ text: m.text }]
     }));
 
-    // Verifica se o histórico está vazio ou se termina com um papel correto para o Gemini
-    const chat = model.startChat({
-      history: history.length > 0 ? history : [],
+    // O Gemini exige que o histórico comece com 'user' e alterne entre 'user' e 'model'.
+    const cleanHistory = [];
+    let lastRole = null;
+    for (const msg of mappedHistory) {
+      // Pula mensagens iniciais do bot e mensagens repetidas do mesmo papel
+      if (cleanHistory.length === 0 && msg.role !== 'user') continue;
+      if (msg.role !== lastRole) {
+        cleanHistory.push(msg);
+        lastRole = msg.role;
+      }
+    }
+
+    // Adiciona a mensagem atual do usuário
+    const contents = [
+      ...cleanHistory,
+      { role: 'user', parts: [{ text: message }] }
+    ];
+
+    const result = await model.generateContent({
+      contents,
       systemInstruction: systemInstruction,
     });
 
-    const result = await chat.sendMessage(message);
     const response = await result.response;
     const text = response.text();
 
     res.json({ text });
   } catch (error) {
     console.error('[public-chat] Erro ao processar Gemini:', error);
-    res.status(500).json({ 
-      error: error?.message || 'Erro desconhecido na IA',
-      details: 'Verifique se a chave API está correta e se o modelo gemini-1.5-flash está disponível.'
+    res.status(500).json({
+      error: error?.message || 'Erro interno no servidor',
+      details: 'Falha na comunicação com o modelo de IA.'
     });
   }
 });
@@ -667,7 +696,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
     }
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const systemInstruction = String(agent?.systemInstruction || '').trim() || 'Você é um agente especialista. Responda em português, de forma objetiva e prática, com próximos passos claros e uma pergunta de continuidade apenas quando necessário.';
-    
+
     // Lista de modelos para tentativa de fallback (priorizando o que o usuário pediu "Nano Banana" -> Gemini 2.5 Flash)
     // Se um falhar com 404, 429 ou 503, tentamos o próximo.
     const candidateModels = [
@@ -704,7 +733,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
     const mLower = message.toLowerCase();
     const hasImageAttachment = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0);
     const isImageEditRequest = hasImageAttachment && (
-       /edite|editar|remova|remover|recrie|recriar|altere|alterar|mude|mudar|refaça|refazer|apague|apagar|troque|trocar|retire|retirar/i.test(mLower)
+      /edite|editar|remova|remover|recrie|recriar|altere|alterar|mude|mudar|refaça|refazer|apague|apagar|troque|trocar|retire|retirar/i.test(mLower)
     );
     const isImageGenerationRequest = (
       /crie.*?imagem/i.test(mLower) ||
@@ -716,266 +745,266 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
     );
 
     if (isImageGenerationRequest) {
-        console.log("Pedido de geração de imagem detectado. Tentando Gemini 2.5 Flash Image; fallback Pollinations.");
-        const msgLower = message.toLowerCase();
-        const wantsText = /texto|legenda|título|title|caption|com texto|incluir nome|include name|with text|wordmark/.test(msgLower);
-        const wantsLogo = /logo|logomarca|logo marca|logotipo|identidade visual|branding|marca/.test(msgLower);
-        const hexColors = Array.from((String(message).match(/#([0-9a-fA-F]{3,8})/g) || []));
-        const paletteSuffix = hexColors.length ? ` color palette: ${hexColors.join(', ')}` : '';
-        const brandName = (() => {
-          const quoted = String(message).match(/["“”'‘’]([^"“”'‘’]+)["“”'‘’]/);
-          if (quoted && quoted[1]) return quoted[1].trim();
-          const afterPara = String(message).match(/\bpara\s+(?:o|a|os|as)?\s*([A-Za-zÀ-ÖØ-öø-ÿ0-9][A-Za-zÀ-ÖØ-öø-ÿ0-9\s\-\_]+)/i);
-          if (afterPara && afterPara[1]) return afterPara[1].trim();
-          const gp = String(message).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-          if (/\bgestaopro\b/i.test(gp)) return 'GestãoPro';
-          return '';
-        })();
-        const wantsTextOnImage = wantsText || !!brandName;
-        const wantsSvg = /svg|vetor|vector/i.test(msgLower);
-        
-        // Só gera SVG se solicitado explicitamente (svg/vetor), caso contrário usa o modelo de imagem raster (melhor qualidade)
-        if (wantsLogo && wantsSvg) {
-          try {
-            const textModel = genAI.getGenerativeModel({
-              model: 'gemini-2.5-flash',
-              systemInstruction: 'Output ONLY valid SVG markup with viewBox "0 0 1024 1024". No HTML or Markdown. If including a slogan or wordmark, ensure it fits within the 1024px width by wrapping text into multiple <tspan> lines or reducing font size. Center text horizontally.'
-            });
-            const sanitizeSvg = (svgIn) => {
-              let finalSvg = String(svgIn || '');
-              if (!/xmlns=/.test(finalSvg)) {
-                finalSvg = finalSvg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
-              }
-              finalSvg = finalSvg.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
-              if (!/width=/.test(finalSvg) || !/height=/.test(finalSvg)) {
-                finalSvg = finalSvg.replace('<svg', '<svg width="1024" height="1024"');
-              }
-              if (!/viewBox=/.test(finalSvg)) {
-                finalSvg = finalSvg.replace('<svg', '<svg viewBox="0 0 1024 1024"');
-              }
-              if (brandName && !finalSvg.includes(brandName) && !/<text[\s\S]*?>/i.test(finalSvg)) {
-                finalSvg = finalSvg.replace(
-                  '</svg>',
-                  `<text x="50%" y="92%" text-anchor="middle" fill="#1f2937" font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif" font-weight="700" font-size="84">${brandName}</text></svg>`
-                );
-              }
-              return finalSvg;
-            };
-            const basePrompt = `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Use viewBox "0 0 1024 1024". Produce only SVG.`;
-            const withName = brandName ? ` Include the brand name "${brandName}" as a wordmark.` : '';
-            const makePrompt = (layout) => {
-              let layoutInstr = '';
-              if (layout === 'above') {
-                layoutInstr = ' Place the symbol centered with the wordmark below it (stacked). Balanced spacing, grid-aligned.';
-              } else if (layout === 'right') {
-                layoutInstr = ' Place the symbol on the left and the wordmark to the right (horizontal lockup). Aligned baselines.';
-              } else if (layout === 'monogram') {
-                layoutInstr = ' Create a monogram combining symbol and wordmark letters into a compact geometric mark.';
-              } else if (layout === 'wordmark') {
-                layoutInstr = ' Create a clean wordmark-only version focusing on typography.';
-              }
-              return `${basePrompt}${withName} ${layoutInstr}`;
-            };
-            const layouts = ['above', 'right'];
-            const imageUrls = [];
-            const generateLayout = async (layout) => {
-              try {
-                const svgPrompt = makePrompt(layout);
-                const svgResp = await textModel.generateContent({
-                  contents: [{ role: 'user', parts: [{ text: svgPrompt }] }]
-                });
-                const raw = String(svgResp?.response?.text() || '').trim();
-                const cleaned = raw
-                  .replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''))
-                  .replace(/^\s*Here is .*?:\s*/i, '');
-                const match = cleaned.match(/<svg[\s\S]*?<\/svg>/i);
-                const svgOnly = match ? match[0] : '';
-                if (svgOnly && svgOnly.includes('<svg')) {
-                  const finalSvg = sanitizeSvg(svgOnly);
-                  const base64 = Buffer.from(finalSvg, 'utf-8').toString('base64');
-                  return `data:image/svg+xml;base64,${base64}`;
-                }
-              } catch (err) {
-                console.error(`Erro ao gerar layout ${layout}:`, err.message);
-              }
-              return null;
-            };
+      console.log("Pedido de geração de imagem detectado. Tentando Gemini 2.5 Flash Image; fallback Pollinations.");
+      const msgLower = message.toLowerCase();
+      const wantsText = /texto|legenda|título|title|caption|com texto|incluir nome|include name|with text|wordmark/.test(msgLower);
+      const wantsLogo = /logo|logomarca|logo marca|logotipo|identidade visual|branding|marca/.test(msgLower);
+      const hexColors = Array.from((String(message).match(/#([0-9a-fA-F]{3,8})/g) || []));
+      const paletteSuffix = hexColors.length ? ` color palette: ${hexColors.join(', ')}` : '';
+      const brandName = (() => {
+        const quoted = String(message).match(/["“”'‘’]([^"“”'‘’]+)["“”'‘’]/);
+        if (quoted && quoted[1]) return quoted[1].trim();
+        const afterPara = String(message).match(/\bpara\s+(?:o|a|os|as)?\s*([A-Za-zÀ-ÖØ-öø-ÿ0-9][A-Za-zÀ-ÖØ-öø-ÿ0-9\s\-\_]+)/i);
+        if (afterPara && afterPara[1]) return afterPara[1].trim();
+        const gp = String(message).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (/\bgestaopro\b/i.test(gp)) return 'GestãoPro';
+        return '';
+      })();
+      const wantsTextOnImage = wantsText || !!brandName;
+      const wantsSvg = /svg|vetor|vector/i.test(msgLower);
 
-            const results = await Promise.all(layouts.map(layout => generateLayout(layout)));
-            imageUrls.push(...results.filter(Boolean));
-            if (imageUrls.length >= 1) {
-              const summary = `Logomarca gerada com ${imageUrls.length} variações: símbolo acima, à direita, monograma e wordmark.`;
-              return res.json({ text: summary, imageUrls, imageUrl: imageUrls[0], promptText: `Variações: acima|direita|monograma|wordmark` });
+      // Só gera SVG se solicitado explicitamente (svg/vetor), caso contrário usa o modelo de imagem raster (melhor qualidade)
+      if (wantsLogo && wantsSvg) {
+        try {
+          const textModel = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            systemInstruction: 'Output ONLY valid SVG markup with viewBox "0 0 1024 1024". No HTML or Markdown. If including a slogan or wordmark, ensure it fits within the 1024px width by wrapping text into multiple <tspan> lines or reducing font size. Center text horizontally.'
+          });
+          const sanitizeSvg = (svgIn) => {
+            let finalSvg = String(svgIn || '');
+            if (!/xmlns=/.test(finalSvg)) {
+              finalSvg = finalSvg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
             }
-          } catch (svgErr) {
-            console.error("Falha ao gerar SVG via Gemini:", svgErr?.message || svgErr);
+            finalSvg = finalSvg.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '');
+            if (!/width=/.test(finalSvg) || !/height=/.test(finalSvg)) {
+              finalSvg = finalSvg.replace('<svg', '<svg width="1024" height="1024"');
+            }
+            if (!/viewBox=/.test(finalSvg)) {
+              finalSvg = finalSvg.replace('<svg', '<svg viewBox="0 0 1024 1024"');
+            }
+            if (brandName && !finalSvg.includes(brandName) && !/<text[\s\S]*?>/i.test(finalSvg)) {
+              finalSvg = finalSvg.replace(
+                '</svg>',
+                `<text x="50%" y="92%" text-anchor="middle" fill="#1f2937" font-family="system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif" font-weight="700" font-size="84">${brandName}</text></svg>`
+              );
+            }
+            return finalSvg;
+          };
+          const basePrompt = `${message}${paletteSuffix ? ',' + paletteSuffix : ''}. Use viewBox "0 0 1024 1024". Produce only SVG.`;
+          const withName = brandName ? ` Include the brand name "${brandName}" as a wordmark.` : '';
+          const makePrompt = (layout) => {
+            let layoutInstr = '';
+            if (layout === 'above') {
+              layoutInstr = ' Place the symbol centered with the wordmark below it (stacked). Balanced spacing, grid-aligned.';
+            } else if (layout === 'right') {
+              layoutInstr = ' Place the symbol on the left and the wordmark to the right (horizontal lockup). Aligned baselines.';
+            } else if (layout === 'monogram') {
+              layoutInstr = ' Create a monogram combining symbol and wordmark letters into a compact geometric mark.';
+            } else if (layout === 'wordmark') {
+              layoutInstr = ' Create a clean wordmark-only version focusing on typography.';
+            }
+            return `${basePrompt}${withName} ${layoutInstr}`;
+          };
+          const layouts = ['above', 'right'];
+          const imageUrls = [];
+          const generateLayout = async (layout) => {
+            try {
+              const svgPrompt = makePrompt(layout);
+              const svgResp = await textModel.generateContent({
+                contents: [{ role: 'user', parts: [{ text: svgPrompt }] }]
+              });
+              const raw = String(svgResp?.response?.text() || '').trim();
+              const cleaned = raw
+                .replace(/```[\s\S]*?```/g, s => s.replace(/```/g, ''))
+                .replace(/^\s*Here is .*?:\s*/i, '');
+              const match = cleaned.match(/<svg[\s\S]*?<\/svg>/i);
+              const svgOnly = match ? match[0] : '';
+              if (svgOnly && svgOnly.includes('<svg')) {
+                const finalSvg = sanitizeSvg(svgOnly);
+                const base64 = Buffer.from(finalSvg, 'utf-8').toString('base64');
+                return `data:image/svg+xml;base64,${base64}`;
+              }
+            } catch (err) {
+              console.error(`Erro ao gerar layout ${layout}:`, err.message);
+            }
+            return null;
+          };
+
+          const results = await Promise.all(layouts.map(layout => generateLayout(layout)));
+          imageUrls.push(...results.filter(Boolean));
+          if (imageUrls.length >= 1) {
+            const summary = `Logomarca gerada com ${imageUrls.length} variações: símbolo acima, à direita, monograma e wordmark.`;
+            return res.json({ text: summary, imageUrls, imageUrl: imageUrls[0], promptText: `Variações: acima|direita|monograma|wordmark` });
+          }
+        } catch (svgErr) {
+          console.error("Falha ao gerar SVG via Gemini:", svgErr?.message || svgErr);
+        }
+      }
+
+      try {
+        const imageModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
+        const negatives = 'male, man, beard, moustache, stubble, blur, low quality, distortion';
+        const promptTextBase = String(message || '').trim() + (wantsLogo ? ", professional logo design, vector style aesthetics, white background, centered, high quality, 3D render, gradient colors, minimalistic but premium, sharp edges" : "");
+        const overlayPhrase = brandName ? ` include overlay wordmark "${brandName}", high legibility, crisp typography` : ` include overlay title and captions, high legibility, crisp typography`;
+        const commonSuffix = wantsTextOnImage ? ` ${overlayPhrase}, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
+        const identitySuffix = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` identity preserved from reference` : '';
+        const styleKeywords = isImageEditRequest
+          ? ", high quality, 8k, ultra sharp, detailed"
+          : ", photorealistic studio product photo, 8K, ultra sharp, HDR, cinematic rim light, DSLR depth of field, realistic materials: leather, metal, skin, fabric";
+        const usedPrompt = `${promptTextBase}${styleKeywords}${identitySuffix}, negative prompt: (${negatives}),${commonSuffix}`;
+        const parts = [];
+        if (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) {
+          const ref = imagePayloads[0];
+          if (ref?.data && ref?.mimeType) {
+            parts.push({ inlineData: { data: ref.data, mimeType: ref.mimeType } });
           }
         }
-        
-        try {
-            const imageModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
-            const negatives = 'male, man, beard, moustache, stubble, blur, low quality, distortion';
-            const promptTextBase = String(message || '').trim() + (wantsLogo ? ", professional logo design, vector style aesthetics, white background, centered, high quality, 3D render, gradient colors, minimalistic but premium, sharp edges" : "");
-            const overlayPhrase = brandName ? ` include overlay wordmark "${brandName}", high legibility, crisp typography` : ` include overlay title and captions, high legibility, crisp typography`;
-            const commonSuffix = wantsTextOnImage ? ` ${overlayPhrase}, no watermark, no banners, no QR code${paletteSuffix}` : ` no text, no watermark, no banners, no QR code${paletteSuffix}`;
-            const identitySuffix = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` identity preserved from reference` : '';
-            const styleKeywords = isImageEditRequest 
-                ? ", high quality, 8k, ultra sharp, detailed" 
-                : ", photorealistic studio product photo, 8K, ultra sharp, HDR, cinematic rim light, DSLR depth of field, realistic materials: leather, metal, skin, fabric";
-            const usedPrompt = `${promptTextBase}${styleKeywords}${identitySuffix}, negative prompt: (${negatives}),${commonSuffix}`;
-            const parts = [];
-            if (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) {
-              const ref = imagePayloads[0];
-              if (ref?.data && ref?.mimeType) {
-                parts.push({ inlineData: { data: ref.data, mimeType: ref.mimeType } });
-              }
-            }
-            parts.push({ text: usedPrompt });
-            const imgResp = await imageModel.generateContent({
-                contents: [{ role: 'user', parts }]
-            });
-            const cand = imgResp?.response?.candidates?.[0];
-            let imgPart = null;
-            if (cand && cand.content && Array.isArray(cand.content.parts)) {
-              for (const p of cand.content.parts) {
-                if (p.inlineData && p.inlineData.data) { imgPart = p.inlineData; break; }
-              }
-            }
-            if (imgPart && imgPart.data) {
-              // Adicionar verificação de tamanho mínimo para evitar imagens "pretas" ou vazias
-              if (imgPart.data.length < 1000) { // Um valor arbitrário, pode ser ajustado
-                console.warn("Imagem Gemini raster gerada é muito pequena, tratando como falha para fallback.");
-                // Não retorna, permitindo que o código caia no bloco catch ou continue para o fallback
-              } else {
-                const mime = imgPart.mimeType || 'image/png';
-                const dataUrl = `data:${mime};base64,${imgPart.data}`;
-                const responseText = `Imagem gerada!`;
-                return res.json({ text: responseText, imageUrl: dataUrl, promptText: usedPrompt });
-              }
-            }
-        } catch (imgGenErr) {
-            console.error("Falha ao gerar imagem via Gemini:", imgGenErr?.message || imgGenErr);
+        parts.push({ text: usedPrompt });
+        const imgResp = await imageModel.generateContent({
+          contents: [{ role: 'user', parts }]
+        });
+        const cand = imgResp?.response?.candidates?.[0];
+        let imgPart = null;
+        if (cand && cand.content && Array.isArray(cand.content.parts)) {
+          for (const p of cand.content.parts) {
+            if (p.inlineData && p.inlineData.data) { imgPart = p.inlineData; break; }
+          }
         }
-        
-        try {
-            const promptModel = genAI.getGenerativeModel({
-                model: 'gemini-2.5-flash',
-                systemInstruction: wantsTextOnImage
-                    ? 'You are an expert prompt engineer. Your task is to generate a detailed image generation prompt in English. Focus ONLY on the visual description of the image, incorporating the brand name as an overlay wordmark and the specified color palette. DO NOT include literal phrases like "with the palette" or "create a logo for" in the output prompt. The output should be ONLY the prompt text, no markdown, no conversational elements.'
-                    : 'You are an expert prompt engineer. Your task is to generate a detailed image generation prompt in English. Focus ONLY on the visual description of the image, incorporating the specified color palette. DO NOT include literal phrases like "with the palette" or "create a logo for" in the output prompt. The output should be ONLY the prompt text, no markdown, no conversational elements.',
-            });
-            
-            let cleanedMessage = String(message).trim();
-
-            // Remover a parte da paleta do message
-            const paletteMatch = String(message).match(/(?:paleta|cores)\s*:\s*([#0-9a-fA-F,\s]+)/i);
-            if (paletteMatch && paletteMatch[0]) {
-              cleanedMessage = cleanedMessage.replace(paletteMatch[0], '').trim();
-            }
-
-            // Remover o brandName e "para o/a" do message
-            if (brandName) {
-              const brandNameRegex = new RegExp(`["“”'‘’]?${brandName}["“”'‘’]?`, 'gi');
-              cleanedMessage = cleanedMessage.replace(brandNameRegex, '').trim();
-              cleanedMessage = cleanedMessage.replace(/\bpara\s+(?:o|a|os|as)?\s*/gi, '').trim();
-            }
-
-            // Remover a frase "Crie uma logo para"
-            cleanedMessage = cleanedMessage.replace(/crie uma logo para/gi, '').trim();
-
-            // Se o cleanedMessage ficar vazio, usar um default
-            if (!cleanedMessage) {
-              cleanedMessage = 'a professional logo';
-            }
-
-            let promptPartsForModel = [];
-            if (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) {
-              promptPartsForModel.push({ text: `Analyze the reference image and the user's request. Create a detailed prompt to recreate or edit the image accordingly. Output ONLY the prompt text.` });
-              const ref = imagePayloads[0];
-              if (ref?.data && ref?.mimeType) {
-                promptPartsForModel.push({ inlineData: { data: ref.data, mimeType: ref.mimeType } });
-              }
-            }
-            promptPartsForModel.push({ text: `Create a detailed image generation prompt in English for: ${cleanedMessage}.` });
-            if (brandName) {
-              promptPartsForModel.push({ text: `The brand name is "${brandName}".` });
-            }
-            if (paletteSuffix) {
-              promptPartsForModel.push({ text: `Use the following ${paletteSuffix}.` });
-            }
-
-            const promptResp = await promptModel.generateContent({
-                contents: [{ role: 'user', parts: promptPartsForModel }]
-            });
-            
-             let englishPrompt = promptResp.response.text().trim();
-             englishPrompt = englishPrompt.replace(/^Here is a prompt: /i, '').replace(/`/g, '');
-             const generalNegativeConstraints = `no watermark, no banners, no QR code`;
-             const textNegativeConstraint = wantsTextOnImage ? '' : 'no text,';
-             const finalOverlaySuffix = `${textNegativeConstraint} ${generalNegativeConstraints}`;
-             const identitySuffix2 = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` identity preserved from reference` : '';
-             const englishPromptClean = `${englishPrompt},${identitySuffix2}, negative prompt: (${negatives}),${finalOverlaySuffix}`;
-            
-            console.log(`Prompt gerado para imagem: ${englishPrompt}`);
-            
-             const seed = Math.floor(Math.random() * 1000000);
-             const makePollinationsUrl = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&seed=${s}&width=1024&height=1024`;
-             const makeAltUrl = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?seed=${s}`;
-             const makeAlt2Url = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&nologo=true&seed=${s}`;
-             const responseText = `Imagem gerada!`;
-             
-             if (wantsLogo) {
-               const seeds = [seed, seed + 1, seed + 2, seed + 3];
-               const urlsBySeed = seeds.map(s => [makePollinationsUrl(s), makeAltUrl(s), makeAlt2Url(s)]);
-               const resolveOneSeed = async (candidates) => {
-                 for (const u of candidates) {
-                   try {
-                     const dataUrl = await fetchImageAsDataUrl(u);
-                     if (dataUrl && /^data:image\//.test(dataUrl)) return dataUrl;
-                   } catch {}
-                 }
-                 return null;
-               };
-               const resolved = await Promise.all(urlsBySeed.map(resolveOneSeed));
-               const imageUrls = resolved.filter(Boolean);
-               if (imageUrls.length > 0) {
-                 return res.json({ text: `${responseText} (variações)`, imageUrls, imageUrl: imageUrls[0], promptText: englishPromptClean });
-               }
-               return res.json({ text: `${responseText} (variações)`, imageUrls: [], imageUrl: undefined, promptText: englishPromptClean });
-             } else {
-               const candidates = [makePollinationsUrl(seed), makeAltUrl(seed), makeAlt2Url(seed)];
-               for (const u of candidates) {
-                 try {
-                   const imageDataUrl = await fetchImageAsDataUrl(u);
-                   if (imageDataUrl && /^data:image\//.test(imageDataUrl)) {
-                     return res.json({ text: responseText, imageUrl: imageDataUrl, promptText: englishPromptClean });
-                   }
-                 } catch {}
-               }
-               return res.json({ text: responseText, imageUrl: undefined, promptText: englishPromptClean });
-             }
-            
-        } catch (imgError) {
-            console.error("Erro ao preparar prompt de imagem:", imgError);
-             const fallbackPrompt = `${String(message || '').trim()}${wantsTextOnImage ? brandName ? `, include overlay wordmark "${brandName}", high legibility, crisp typography` : ', include overlay title and captions, high legibility, crisp typography' : ', no text'}, no watermark, no banners, no QR code${paletteSuffix}`;
-             const candidates = [
-               `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?model=flux`,
-               `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}`,
-               `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?model=flux&nologo=true`
-             ];
-             for (const u of candidates) {
-               try {
-                 const imageDataUrl = await fetchImageAsDataUrl(u);
-                 if (imageDataUrl && /^data:image\//.test(imageDataUrl)) {
-                   return res.json({ text: `Imagem gerada com base no seu pedido.`, imageUrl: imageDataUrl, promptText: fallbackPrompt });
-                 }
-               } catch {}
-             }
-             return res.json({ text: `Imagem gerada com base no seu pedido, mas não foi possível obter o binário da imagem.`, imageUrl: undefined, promptText: fallbackPrompt });
+        if (imgPart && imgPart.data) {
+          // Adicionar verificação de tamanho mínimo para evitar imagens "pretas" ou vazias
+          if (imgPart.data.length < 1000) { // Um valor arbitrário, pode ser ajustado
+            console.warn("Imagem Gemini raster gerada é muito pequena, tratando como falha para fallback.");
+            // Não retorna, permitindo que o código caia no bloco catch ou continue para o fallback
+          } else {
+            const mime = imgPart.mimeType || 'image/png';
+            const dataUrl = `data:${mime};base64,${imgPart.data}`;
+            const responseText = `Imagem gerada!`;
+            return res.json({ text: responseText, imageUrl: dataUrl, promptText: usedPrompt });
+          }
         }
-        
-        // Return de segurança para garantir que não caia no chat de texto
-        return res.status(500).json({ error: "Falha na geração de imagem." });
+      } catch (imgGenErr) {
+        console.error("Falha ao gerar imagem via Gemini:", imgGenErr?.message || imgGenErr);
+      }
+
+      try {
+        const promptModel = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          systemInstruction: wantsTextOnImage
+            ? 'You are an expert prompt engineer. Your task is to generate a detailed image generation prompt in English. Focus ONLY on the visual description of the image, incorporating the brand name as an overlay wordmark and the specified color palette. DO NOT include literal phrases like "with the palette" or "create a logo for" in the output prompt. The output should be ONLY the prompt text, no markdown, no conversational elements.'
+            : 'You are an expert prompt engineer. Your task is to generate a detailed image generation prompt in English. Focus ONLY on the visual description of the image, incorporating the specified color palette. DO NOT include literal phrases like "with the palette" or "create a logo for" in the output prompt. The output should be ONLY the prompt text, no markdown, no conversational elements.',
+        });
+
+        let cleanedMessage = String(message).trim();
+
+        // Remover a parte da paleta do message
+        const paletteMatch = String(message).match(/(?:paleta|cores)\s*:\s*([#0-9a-fA-F,\s]+)/i);
+        if (paletteMatch && paletteMatch[0]) {
+          cleanedMessage = cleanedMessage.replace(paletteMatch[0], '').trim();
+        }
+
+        // Remover o brandName e "para o/a" do message
+        if (brandName) {
+          const brandNameRegex = new RegExp(`["“”'‘’]?${brandName}["“”'‘’]?`, 'gi');
+          cleanedMessage = cleanedMessage.replace(brandNameRegex, '').trim();
+          cleanedMessage = cleanedMessage.replace(/\bpara\s+(?:o|a|os|as)?\s*/gi, '').trim();
+        }
+
+        // Remover a frase "Crie uma logo para"
+        cleanedMessage = cleanedMessage.replace(/crie uma logo para/gi, '').trim();
+
+        // Se o cleanedMessage ficar vazio, usar um default
+        if (!cleanedMessage) {
+          cleanedMessage = 'a professional logo';
+        }
+
+        let promptPartsForModel = [];
+        if (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) {
+          promptPartsForModel.push({ text: `Analyze the reference image and the user's request. Create a detailed prompt to recreate or edit the image accordingly. Output ONLY the prompt text.` });
+          const ref = imagePayloads[0];
+          if (ref?.data && ref?.mimeType) {
+            promptPartsForModel.push({ inlineData: { data: ref.data, mimeType: ref.mimeType } });
+          }
+        }
+        promptPartsForModel.push({ text: `Create a detailed image generation prompt in English for: ${cleanedMessage}.` });
+        if (brandName) {
+          promptPartsForModel.push({ text: `The brand name is "${brandName}".` });
+        }
+        if (paletteSuffix) {
+          promptPartsForModel.push({ text: `Use the following ${paletteSuffix}.` });
+        }
+
+        const promptResp = await promptModel.generateContent({
+          contents: [{ role: 'user', parts: promptPartsForModel }]
+        });
+
+        let englishPrompt = promptResp.response.text().trim();
+        englishPrompt = englishPrompt.replace(/^Here is a prompt: /i, '').replace(/`/g, '');
+        const generalNegativeConstraints = `no watermark, no banners, no QR code`;
+        const textNegativeConstraint = wantsTextOnImage ? '' : 'no text,';
+        const finalOverlaySuffix = `${textNegativeConstraint} ${generalNegativeConstraints}`;
+        const identitySuffix2 = (imagePayloads && Array.isArray(imagePayloads) && imagePayloads.length > 0) ? ` identity preserved from reference` : '';
+        const englishPromptClean = `${englishPrompt},${identitySuffix2}, negative prompt: (${negatives}),${finalOverlaySuffix}`;
+
+        console.log(`Prompt gerado para imagem: ${englishPrompt}`);
+
+        const seed = Math.floor(Math.random() * 1000000);
+        const makePollinationsUrl = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&seed=${s}&width=1024&height=1024`;
+        const makeAltUrl = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?seed=${s}`;
+        const makeAlt2Url = (s) => `https://image.pollinations.ai/prompt/${encodeURIComponent(englishPromptClean)}?model=flux&nologo=true&seed=${s}`;
+        const responseText = `Imagem gerada!`;
+
+        if (wantsLogo) {
+          const seeds = [seed, seed + 1, seed + 2, seed + 3];
+          const urlsBySeed = seeds.map(s => [makePollinationsUrl(s), makeAltUrl(s), makeAlt2Url(s)]);
+          const resolveOneSeed = async (candidates) => {
+            for (const u of candidates) {
+              try {
+                const dataUrl = await fetchImageAsDataUrl(u);
+                if (dataUrl && /^data:image\//.test(dataUrl)) return dataUrl;
+              } catch { }
+            }
+            return null;
+          };
+          const resolved = await Promise.all(urlsBySeed.map(resolveOneSeed));
+          const imageUrls = resolved.filter(Boolean);
+          if (imageUrls.length > 0) {
+            return res.json({ text: `${responseText} (variações)`, imageUrls, imageUrl: imageUrls[0], promptText: englishPromptClean });
+          }
+          return res.json({ text: `${responseText} (variações)`, imageUrls: [], imageUrl: undefined, promptText: englishPromptClean });
+        } else {
+          const candidates = [makePollinationsUrl(seed), makeAltUrl(seed), makeAlt2Url(seed)];
+          for (const u of candidates) {
+            try {
+              const imageDataUrl = await fetchImageAsDataUrl(u);
+              if (imageDataUrl && /^data:image\//.test(imageDataUrl)) {
+                return res.json({ text: responseText, imageUrl: imageDataUrl, promptText: englishPromptClean });
+              }
+            } catch { }
+          }
+          return res.json({ text: responseText, imageUrl: undefined, promptText: englishPromptClean });
+        }
+
+      } catch (imgError) {
+        console.error("Erro ao preparar prompt de imagem:", imgError);
+        const fallbackPrompt = `${String(message || '').trim()}${wantsTextOnImage ? brandName ? `, include overlay wordmark "${brandName}", high legibility, crisp typography` : ', include overlay title and captions, high legibility, crisp typography' : ', no text'}, no watermark, no banners, no QR code${paletteSuffix}`;
+        const candidates = [
+          `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?model=flux`,
+          `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}`,
+          `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?model=flux&nologo=true`
+        ];
+        for (const u of candidates) {
+          try {
+            const imageDataUrl = await fetchImageAsDataUrl(u);
+            if (imageDataUrl && /^data:image\//.test(imageDataUrl)) {
+              return res.json({ text: `Imagem gerada com base no seu pedido.`, imageUrl: imageDataUrl, promptText: fallbackPrompt });
+            }
+          } catch { }
+        }
+        return res.json({ text: `Imagem gerada com base no seu pedido, mas não foi possível obter o binário da imagem.`, imageUrl: undefined, promptText: fallbackPrompt });
+      }
+
+      // Return de segurança para garantir que não caia no chat de texto
+      return res.status(500).json({ error: "Falha na geração de imagem." });
     }
 
     let result = null;
@@ -985,14 +1014,14 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
     for (const modelName of candidateModels) {
       try {
         console.log(`Tentando gerar resposta com modelo: ${modelName}`);
-        
+
         // Se for pedido de imagem, tentamos injetar instrução de output (embora a API de texto não retorne imagem binária diretamente no content parts padrão sem tool use).
         // A melhor aposta aqui é manter o fluxo de texto, mas se o usuário quer imagem, o modelo vai dizer que criou o prompt.
         // SE quisermos realmente gerar imagem, precisaríamos de uma chamada de API diferente (ex: DALL-E ou Vertex Imagen).
         // Dado o ambiente "Google Gemini Free Tier", a geração de imagem direta (blob) não é garantida na mesma resposta de texto.
-        
+
         const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
-        
+
         // Reconstruindo userParts para cada tentativa (necessário pois o objeto pode ser consumido/modificado internamente)
         const currentContextual = [
           `Perfil do usuário: ${sanitize([
@@ -1023,25 +1052,25 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
         result = await model.generateContent({
           contents: [{ role: 'user', parts: currentUserParts }]
         });
-        
+
         if (result && result.response) break; // Sucesso
       } catch (e) {
         console.warn(`Falha com modelo ${modelName}: ${e.message}`);
         lastError = e;
         // Se for erro de permissão (403) ou não encontrado (404) ou cota (429) ou server (503), continua.
         // Se for erro de chave inválida, paramos.
-        if (String(e.message).includes('API_KEY')) throw e; 
+        if (String(e.message).includes('API_KEY')) throw e;
       }
     }
 
     if (!result) {
-        throw lastError || new Error('Todos os modelos falharam.');
+      throw lastError || new Error('Todos os modelos falharam.');
     }
 
     const parts = result?.response?.candidates?.[0]?.content?.parts || [];
     const textParts = parts.map((p) => p?.text || '').filter(Boolean);
     const text = textParts.join('\n').trim();
-    
+
     // Se tivéssemos geração de imagem real, retornaríamos { text, image: base64 }
     if (!text) {
       return res.status(500).json({ error: 'Resposta vazia do modelo' });
@@ -1093,7 +1122,7 @@ app.post('/api/ai/superboss', ensureJsonBody, requireAuth, limitSuperBoss, async
     ].filter(Boolean).join('\n\n');
 
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: contextual }]}]
+      contents: [{ role: 'user', parts: [{ text: contextual }] }]
     });
     const parts = result?.response?.candidates?.[0]?.content?.parts || [];
     const textParts = parts.map((p) => p?.text || '').filter(Boolean);
@@ -1141,7 +1170,7 @@ app.get('/api/user/plan', requireAuth, async (req, res) => {
         if (u && (u.plan || u.cycle)) {
           return res.json({ plan: u.plan || 'free', cycle: u.cycle || 'monthly' });
         }
-      } catch {}
+      } catch { }
       return res.status(404).json({ error: 'Usuário não encontrado' });
     }
 
@@ -1158,7 +1187,7 @@ app.get('/api/user/plan', requireAuth, async (req, res) => {
         if (u && (u.plan || u.cycle)) {
           return res.json({ plan: u.plan || 'free', cycle: u.cycle || 'monthly' });
         }
-      } catch {}
+      } catch { }
       res.json({ plan: 'free', cycle: 'monthly' });
     }
   } catch (e) {
@@ -1169,7 +1198,7 @@ app.get('/api/user/plan', requireAuth, async (req, res) => {
       if (u && (u.plan || u.cycle)) {
         return res.json({ plan: u.plan || 'free', cycle: u.cycle || 'monthly' });
       }
-    } catch {}
+    } catch { }
     res.json({ plan: 'free', cycle: 'monthly' });
   }
 });
@@ -1183,7 +1212,7 @@ app.get('/api/history', requireAuth, async (req, res) => {
     const db = ensureStoreShape();
     const u = db.users[email];
     if (!u) return res.json({ sessions: [] });
-    
+
     return res.json({ sessions: u.history || [] });
   } catch (e) {
     console.error('Erro ao buscar histórico:', e);
@@ -1201,9 +1230,9 @@ app.post('/api/history', requireAuth, async (req, res) => {
 
     const db = ensureStoreShape();
     if (!db.users[email]) db.users[email] = { plan: 'free', cycle: 'monthly' };
-    
+
     if (!db.users[email].history) db.users[email].history = [];
-    
+
     // Atualiza se já existir, senão adiciona no topo
     const idx = db.users[email].history.findIndex(s => s.id === session.id);
     if (idx !== -1) {
@@ -1291,7 +1320,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     const now = Math.floor(Date.now() / 1000);
     const token = jwt.sign({ sub: user.id, email: user.email, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
-    
+
     const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase());
     try {
       if (isAdmin) {
@@ -1312,9 +1341,9 @@ app.post('/api/auth/login', async (req, res) => {
             update: { plan: 'premium', billingCycle: 'yearly', status: 'active' },
             create: { userId: dbUser.id, plan: 'premium', billingCycle: 'yearly', status: 'active' }
           });
-        } catch {}
+        } catch { }
       }
-    } catch {}
+    } catch { }
     return res.json({ token, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
   } catch (e) {
     console.error('Login error:', e?.message || e);
@@ -1366,7 +1395,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     const now = Math.floor(Date.now() / 1000);
     const token = jwt.sign({ sub: user.id, email: user.email, iat: now, iss: 'gestaopro' }, AUTH_JWT_SECRET, { expiresIn: '7d' });
-    
+
     const isAdmin = ADMIN_EMAILS.includes((user.email || '').toLowerCase());
     try {
       if (isAdmin) {
@@ -1387,9 +1416,9 @@ app.post('/api/auth/register', async (req, res) => {
             update: { plan: 'premium', billingCycle: 'yearly', status: 'active' },
             create: { userId: dbUser.id, plan: 'premium', billingCycle: 'yearly', status: 'active' }
           });
-        } catch {}
+        } catch { }
       }
-    } catch {}
+    } catch { }
     return res.json({ token, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
   } catch (e) {
     console.error('Register error:', e?.message || e);
@@ -1411,7 +1440,7 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
       const ticket = await googleClient.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
       payload = ticket.getPayload();
     } catch (ve) {
-      try { console.warn('Falha na verificação do idToken do Google:', ve?.message || ve); } catch {}
+      try { console.warn('Falha na verificação do idToken do Google:', ve?.message || ve); } catch { }
       return res.status(401).json({ error: 'Token inválido', details: ve?.message || 'Verificação de token falhou' });
     }
 
@@ -1429,7 +1458,7 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
       });
     } catch (dbErr) {
       // Fallback leve para ambientes sem DB: mantém login funcional
-      try { console.warn('Prisma indisponível, usando fallback leve de usuário.', dbErr?.message || dbErr); } catch {}
+      try { console.warn('Prisma indisponível, usando fallback leve de usuário.', dbErr?.message || dbErr); } catch { }
       user = { id: email, email, name: name || 'Usuário', picture: picture || undefined };
     }
 
@@ -1455,9 +1484,9 @@ app.post('/api/auth/google', limitAuthGoogle, async (req, res) => {
             update: { plan: 'premium', billingCycle: 'yearly', status: 'active' },
             create: { userId: dbUser.id, plan: 'premium', billingCycle: 'yearly', status: 'active' }
           });
-        } catch {}
+        } catch { }
       }
-    } catch {}
+    } catch { }
     res.json({ token, user, isAdmin, plan: isAdmin ? 'premium' : undefined, cycle: isAdmin ? 'yearly' : undefined });
   } catch (e) {
     console.error('Google Auth Error:', e);
