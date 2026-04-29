@@ -106,13 +106,16 @@ const Chatbot: React.FC = () => {
         return;
       }
 
-      if (!response.ok) throw new Error('Falha na resposta do servidor');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro ${response.status}`);
+      }
       
       const data = await response.json();
       animateBotReply(data.text || "Desculpe, tive um problema técnico. Pode repetir?");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat Error:', error);
-      animateBotReply("Desculpe, estou com dificuldade de conexão agora. Por favor, verifique sua internet ou tente novamente em instantes.");
+      animateBotReply(`Erro: ${error.message}. Verifique se a GEMINI_API_KEY no Vercel está correta e faça um Redeploy.`);
     } finally {
       setIsTyping(false);
     }

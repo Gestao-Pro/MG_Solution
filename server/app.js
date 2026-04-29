@@ -647,7 +647,10 @@ Diretrizes de Resposta:
     res.json({ text });
   } catch (error) {
     console.error('[public-chat] Erro ao processar Gemini:', error);
-    res.status(500).json({ error: 'Desculpe, tive um problema ao processar sua resposta. Tente novamente em instantes.' });
+    res.status(500).json({ 
+      error: error?.message || 'Erro desconhecido na IA',
+      details: 'Verifique se a chave API está correta e se o modelo gemini-1.5-flash está disponível.'
+    });
   }
 });
 
