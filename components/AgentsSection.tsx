@@ -14,7 +14,7 @@ const AgentCard: React.FC<{ agent: Agent }> = ({ agent }) => {
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const closeTimeoutRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const videoUrl = `/videos/agents/${agent.id}.mp4`;
+  const videoUrl = `/videos/${agent.name}.mp4`;
   const isTouch = typeof window !== 'undefined' && 'matchMedia' in window ? window.matchMedia('(hover: none)').matches : false;
 
   const handleEnter = () => {
