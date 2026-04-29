@@ -588,6 +588,64 @@ app.post('/api/generate-speech', ensureJsonBody, requireAuth, limitTTS, async (r
   }
 });
 
+// Geração de resposta de chat pública para a Landing Page (sem login)
+app.post('/api/ai/public-chat', ensureJsonBody, limitSuperBoss, async (req, res) => {
+  try {
+    const { message, chatHistory } = req.body || {};
+    if (!message) {
+      return res.status(400).json({ error: 'Mensagem é obrigatória.' });
+    }
+
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY não configurado no servidor' });
+    }
+
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const systemInstruction = `Você é o SuperBoss, o orquestrador de IA da plataforma GestãoPro.
+Sua missão é tirar todas as dúvidas dos visitantes da landing page e mostrar como a GestãoPro pode transformar o negócio deles.
+
+Sobre a GestãoPro:
+- É uma plataforma de gestão aumentada por IA com mais de 30 agentes especialistas.
+- O SuperBoss (você) é o cérebro que entende o problema do cliente e ativa os agentes certos.
+- Áreas atendidas: Estratégia, Vendas, Marketing, Pessoas, Processos e Finanças.
+- Agentes de destaque: Artur (Estratégia), Beatriz (Vendas), Cláudio (Processos), Débora (Marketing), Elias (Finanças), Sofia (RH), entre outros.
+- Planos: 
+  1. Starter (R$49/mês ou R$490/ano): Acesso a agentes essenciais.
+  2. Pro (R$99/mês ou R$990/ano): Acesso a todos os agentes e recursos avançados.
+  3. Premium (R$149/mês ou R$1490/ano): Suporte prioritário e limites estendidos.
+- Diferencial: Não é apenas um chat; é uma ferramenta que executa diagnósticos, cria planos de ação e gera entregáveis (documentos, planilhas, estratégias).
+
+Diretrizes de Resposta:
+- Seja profissional, entusiasmado, prestativo e persuasivo.
+- Responda sempre em Português do Brasil.
+- Se não souber algo específico sobre preços além do citado, sugira que o usuário clique em "Comece Agora" para falar com um consultor.
+- Mantenha as respostas concisas e fáceis de ler no chat.
+- Use emojis moderadamente.`;
+
+    const history = (chatHistory || []).slice(-10).map(m => ({
+      role: m.sender === 'bot' ? 'model' : 'user',
+      parts: [{ text: m.text }]
+    }));
+
+    const chat = model.startChat({
+      history: history,
+      systemInstruction: systemInstruction,
+    });
+
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    const text = response.text();
+
+    res.json({ text });
+  } catch (error) {
+    console.error('Erro no public-chat:', error?.message || error);
+    res.status(500).json({ error: 'Falha ao processar resposta da IA.' });
+  }
+});
+
 // Geração de resposta de chat via Gemini (texto)
 app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, res) => {
   try {
