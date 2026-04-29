@@ -177,18 +177,34 @@ const Chatbot: React.FC = () => {
         </div>
 
         <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-700">
-          <div className="relative">
+          <div className="relative flex items-center">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage(e as any);
+                }
+              }}
               placeholder="Digite sua mensagem..."
               className="w-full bg-slate-900 border border-slate-600 rounded-lg py-2 pl-4 pr-12 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isTyping}
             />
-            <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-indigo-600 rounded-md text-white hover:bg-indigo-700 disabled:bg-slate-600" disabled={!inputValue.trim()}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-              </svg>
+            <button 
+              type="submit" 
+              className="absolute right-2 z-10 p-2 bg-indigo-600 rounded-md text-white hover:bg-indigo-700 disabled:bg-slate-700 disabled:opacity-50 transition-all" 
+              disabled={!inputValue.trim() || isTyping}
+              aria-label="Enviar mensagem"
+            >
+              {isTyping ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                </svg>
+              )}
             </button>
           </div>
         </form>
