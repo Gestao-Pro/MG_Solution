@@ -10,7 +10,7 @@ import { FAQ } from '../components/FAQ';
 import { FinalCTA } from '../components/FinalCTA';
 import { Footer } from '../components/Footer';
 import Chatbot from '../components/Chatbot';
-import Cursor from '../components/Cursor';
+//import Cursor from '../components/Cursor';
 import ParallaxBg from '../components/ParallaxBg';
 import { useLandingAnimations } from '../hooks/useLandingAnimations';
 
@@ -24,7 +24,6 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans">
       <ParallaxBg />
-      <Cursor />
       <LandingHeader onLoginClick={handleLoginClick} />
       <Hero onLoginClick={handleLoginClick} />
       <HowItWorks />

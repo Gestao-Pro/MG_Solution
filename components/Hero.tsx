@@ -15,7 +15,7 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
     if (videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = 1;
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
       setWasClicked(true);
     }
   };
@@ -24,7 +24,7 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
     setWasClicked(true); // Attempting unmuted autoplay on hover
     setShowPreview(true);
   };
-  
+
   const handleLeave = () => {
     setShowPreview(false);
     setWasClicked(false);
@@ -47,9 +47,9 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
     <section id="home" className="relative text-white py-10 md:py-1 overflow-hidden min-h-[600px] md:min-h-screen flex items-center">
       {/* Background Image/GIF */}
       <div className="absolute inset-0 z-0 bg-[#030712] overflow-hidden">
-        <img 
-          src="https://i.postimg.cc/fT4SxjCF/VD_GIF.gif" 
-          alt="Background" 
+        <img
+          src="/logo/VD_GIF.gif"
+          alt="Background"
           className="absolute top-10 md:top-0 left-[80%] md:left-1/2 -translate-x-1/2 w-[55%] md:w-full h-full object-contain md:object-cover object-top origin-top scale-[2.8] md:scale-100 md:object-[center_20px]"
         />
         {/* Overlay para garantir legibilidade apenas na base */}
@@ -98,7 +98,7 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
               alt="SuperBoss AI"
               className="absolute inset-0 w-full h-full rounded-full object-cover shadow-2xl border-4 border-indigo-500 transform transition-transform duration-300 group-hover:scale-105"
             />
-            
+
             {!showPreview && (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="relative flex items-center justify-center">
@@ -114,9 +114,8 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
               ref={popoverRef}
               onPointerLeave={handleLeave}
               onMouseLeave={handleLeave}
-              className={`absolute inset-0 z-50 transition-opacity duration-150 ${
-                showPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
-              }`}
+              className={`absolute inset-0 z-50 transition-opacity duration-150 ${showPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
             >
               <div className="w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-indigo-500 bg-black">
                 {showPreview && (
@@ -131,9 +130,9 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
                     onCanPlay={() => {
                       if (wasClicked && videoRef.current) {
                         videoRef.current.play().catch(() => {
-                           // Se falhar com áudio, tenta mudo
-                           if (videoRef.current) videoRef.current.muted = true;
-                           videoRef.current?.play().catch(() => {});
+                          // Se falhar com áudio, tenta mudo
+                          if (videoRef.current) videoRef.current.muted = true;
+                          videoRef.current?.play().catch(() => { });
                         });
                       }
                     }}
