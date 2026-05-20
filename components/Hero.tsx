@@ -2,6 +2,20 @@ import React, { useRef, useState } from 'react';
 import { SUPERBOSS_AVATAR_URL, SUPERBOSS_VIDEO_URL } from '../constants';
 import { Play } from 'lucide-react';
 
+const HeroBackground = React.memo(() => {
+  return (
+    <div className="absolute inset-0 z-0 bg-[#030712] overflow-hidden">
+      <img
+        src="/logo/VD_GIF.gif"
+        alt="Background"
+        className="absolute top-10 md:top-0 left-[80%] md:left-1/2 -translate-x-1/2 w-[55%] md:w-full h-full object-contain md:object-cover object-top origin-top scale-[2.8] md:scale-100 md:object-[center_20px]"
+      />
+      {/* Overlay para garantir legibilidade apenas na base */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-800/10 to-transparent"></div>
+    </div>
+  );
+});
+
 export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) => {
   const [showPreview, setShowPreview] = useState(false);
   const [wasClicked, setWasClicked] = useState(false);
@@ -46,15 +60,7 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
   return (
     <section id="home" className="relative text-white py-10 md:py-1 overflow-hidden min-h-[600px] md:min-h-screen flex items-center">
       {/* Background Image/GIF */}
-      <div className="absolute inset-0 z-0 bg-[#030712] overflow-hidden">
-        <img
-          src="/logo/VD_GIF.gif"
-          alt="Background"
-          className="absolute top-10 md:top-0 left-[80%] md:left-1/2 -translate-x-1/2 w-[55%] md:w-full h-full object-contain md:object-cover object-top origin-top scale-[2.8] md:scale-100 md:object-[center_20px]"
-        />
-        {/* Overlay para garantir legibilidade apenas na base */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-800/10 to-transparent"></div>
-      </div>
+      <HeroBackground />
 
       <div className="container mx-auto px-4 md:px-10 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
         <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[45vw] sm:mt-[350px] md:mt-[350px]">
