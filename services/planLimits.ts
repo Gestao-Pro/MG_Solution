@@ -5,8 +5,8 @@ import { Plan, BillingCycle } from '@/contexts/PlanContext';
 // No anual, os bônus serão adicionados via seleção do usuário.
 export const INCLUDED_AGENT_COUNTS: Record<Plan, { monthly: number; yearly: number }> = {
   free: { monthly: 6, yearly: 6 }, // 1 por área
-  starter: { monthly: 5, yearly: 5 },
-  pro: { monthly: 19, yearly: 19 },
+  starter: { monthly: 12, yearly: 12 },
+  pro: { monthly: 24, yearly: 24 },
   premium: { monthly: 30, yearly: 30 },
 };
 
