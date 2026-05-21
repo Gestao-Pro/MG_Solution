@@ -62,7 +62,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, user
     };
     const getPlanTooltip = (plan: 'starter'|'pro'|'premium') => {
       const base = plan === 'starter' ? '60 RPM · 200/dia' : plan === 'pro' ? '90 RPM · 500/dia' : '120 RPM · 1000/dia';
-      const bonus = selectedCycle === 'year' ? (plan === 'starter' ? ' · +1 agente (anual)' : plan === 'pro' ? ' · +2 agentes (anual)' : ' · +3 agentes (anual)') : '';
+      const bonus = selectedCycle === 'year' ? (plan === 'starter' ? ' · +2 agentes (anual)' : plan === 'pro' ? ' · +3 agentes (anual)' : '') : '';
       return `${base}${bonus}`;
     };
     useEffect(() => {
@@ -336,7 +336,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, user
                                       <ul className="list-disc pl-4 space-y-1">
                                         <li>60 RPM (Chat/TTS)</li>
                                         <li>200 requisições por dia</li>
-                                        <li>Agentes incluídos: 5 (mensal) · +1 bônus no anual</li>
+                                        <li>Agentes incluídos: 12 (mensal) · +2 bônus no anual</li>
                                         <li>Agentes adicionais como add-on (preço por especialidade)</li>
                                         <li>Suporte básico por e-mail</li>
                                       </ul>
@@ -346,7 +346,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, user
                                       <ul className="list-disc pl-4 space-y-1">
                                         <li>90 RPM (Chat/TTS)</li>
                                         <li>500 requisições por dia</li>
-                                        <li>Agentes incluídos: 19 (mensal) · +2 bônus no anual</li>
+                                        <li>Agentes incluídos: 24 (mensal) · +3 bônus no anual</li>
                                         <li>Agentes adicionais como add-on (preço por especialidade)</li>
                                         <li>Suporte prioritário</li>
                                         <li>Recursos avançados e personalização</li>
@@ -481,7 +481,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, user
                                     <ul className="list-disc pl-4 space-y-1">
                                       <li>60 RPM (Chat/TTS)</li>
                                       <li>200 requisições por dia</li>
-                                      <li>Agentes incluídos: 5 (mensal) · +1 bônus no anual</li>
+                                      <li>Agentes incluídos: 12 (mensal) · +2 bônus no anual</li>
                                       <li>Agentes adicionais como add-on (preço por especialidade)</li>
                                       <li>Suporte básico por e-mail</li>
                                     </ul>
@@ -491,7 +491,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar, theme, toggleTheme, user
                                     <ul className="list-disc pl-4 space-y-1">
                                       <li>90 RPM (Chat/TTS)</li>
                                       <li>500 requisições por dia</li>
-                                      <li>Agentes incluídos: 19 (mensal) · +2 bônus no anual</li>
+                                      <li>Agentes incluídos: 24 (mensal) · +3 bônus no anual</li>
                                       <li>Agentes adicionais como add-on (preço por especialidade)</li>
                                       <li>Suporte prioritário</li>
                                       <li>Recursos avançados e personalização</li>

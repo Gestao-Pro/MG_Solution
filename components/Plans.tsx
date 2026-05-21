@@ -120,7 +120,7 @@ const Plans: React.FC = () => {
                 <li>Chat/TTS 60 RPM · 200/dia</li>
                 <li>Imagem liberada</li>
                 <li>Ideal para uso profissional moderado</li>
-                <li>Agentes incluídos: {cycle==='yearly' ? '7 (anual)' : '5 (mensal)'}{cycle==='yearly' ? ' · +2 bônus selecionáveis' : ''}</li>
+                <li>Agentes incluídos: {cycle==='yearly' ? '12 (anual)' : '12 (mensal)'}{cycle==='yearly' ? ' · +2 bônus selecionáveis' : ''}</li>
                 <li>Agentes adicionais como add-on (preço por especialidade)</li>
               </ul>
               <div className="mt-4 flex items-center gap-3">
@@ -142,7 +142,7 @@ const Plans: React.FC = () => {
                 <li>Chat/TTS 90 RPM · 500/dia</li>
                 <li>Imagem liberada</li>
                 <li>Recursos avançados e maior throughput</li>
-                <li>Agentes incluídos: {cycle==='yearly' ? '22 (anual)' : '19 (mensal)'}{cycle==='yearly' ? ' · +3 bônus selecionáveis' : ''}</li>
+                <li>Agentes incluídos: {cycle==='yearly' ? '24 (anual)' : '24 (mensal)'}{cycle==='yearly' ? ' · +3 bônus selecionáveis' : ''}</li>
                 {cycle==='yearly' && (
                   <li>Inclui 10 interações com SuperBoss (modo leve)</li>
                 )}
