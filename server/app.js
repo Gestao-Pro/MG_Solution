@@ -695,7 +695,10 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
       return res.status(500).json({ error: 'GEMINI_API_KEY não configurado no servidor' });
     }
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const systemInstruction = String(agent?.systemInstruction || '').trim() || 'Você é um agente especialista. Responda em português, de forma objetiva e prática, com próximos passos claros e uma pergunta de continuidade apenas quando necessário.';
+    let systemInstruction = String(agent?.systemInstruction || '').trim() || 'Você é um agente especialista. Responda em português, de forma objetiva e prática, com próximos passos claros e uma pergunta de continuidade apenas quando necessário.';
+
+    // Injetar contexto global da GestãoPró
+    systemInstruction = `Você é um agente especialista integrante da plataforma GestãoPró, trabalhando em conjunto com outros especialistas e sob a coordenação do SuperBoss. Mantenha o foco em sua especialidade, mas se o usuário precisar de algo fora do seu escopo, indique que ele pode explorar outros agentes ou usar o SuperBoss no menu principal.\n\n${systemInstruction}`;
 
     // Lista de modelos para tentativa de fallback (priorizando o que o usuário pediu "Nano Banana" -> Gemini 2.5 Flash)
     // Se um falhar com 404, 429 ou 503, tentamos o próximo.
