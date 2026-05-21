@@ -37,6 +37,8 @@ export interface Agent {
   canHandleImages?: boolean;
   canHandleDataFiles?: boolean;
   canHandleDocuments?: boolean;
+  // Ability to fetch and read web URLs as text
+  canReadUrls?: boolean;
   // Capacidade de sugerir gráficos (para BI/relatórios)
   canSuggestCharts?: boolean;
 }

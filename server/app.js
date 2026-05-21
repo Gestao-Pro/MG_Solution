@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import https from 'https';
+import http from 'http';
 
 const prisma = new PrismaClient();
 
@@ -149,6 +150,71 @@ const fetchImageAsDataUrl = (url, maxRedirects = 3) => new Promise((resolve, rej
           resolve(`data:${mime};base64,${base64}`);
         });
       }).on('error', (e) => reject(e));
+    };
+    handle(url, maxRedirects);
+  } catch (e) { reject(e); }
+});
+
+// Utilitário: baixa conteúdo de uma URL como texto limpo (HTML -> texto plano)
+const fetchUrlAsText = (url, maxRedirects = 5, timeoutMs = 15000) => new Promise((resolve, reject) => {
+  try {
+    const parsedUrl = new URL(url);
+    const transport = parsedUrl.protocol === 'https:' ? https : http;
+    const opts = {
+      headers: {
+        'Accept': 'text/html,application/xhtml+xml,text/plain,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+      },
+      timeout: timeoutMs,
+    };
+    const handle = (currentUrl, redirectsRemaining) => {
+      const current = new URL(currentUrl);
+      const t = current.protocol === 'https:' ? https : http;
+      const req = t.get(currentUrl, opts, (res) => {
+        const status = res.statusCode || 200;
+        if ([301, 302, 303, 307, 308].includes(status) && res.headers.location && redirectsRemaining > 0) {
+          const nextUrl = res.headers.location.startsWith('http') ? res.headers.location : new URL(res.headers.location, currentUrl).toString();
+          res.resume();
+          return handle(nextUrl, redirectsRemaining - 1);
+        }
+        if (status >= 400) {
+          res.resume();
+          return reject(new Error(`HTTP ${status} ao acessar ${currentUrl}`));
+        }
+        const chunks = [];
+        res.on('data', (d) => chunks.push(d));
+        res.on('end', () => {
+          try {
+            const raw = Buffer.concat(chunks).toString('utf8');
+            // Strip HTML tags, scripts, styles and normalize whitespace
+            let text = raw
+              .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+              .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+              .replace(/<nav[\s\S]*?<\/nav>/gi, ' ')
+              .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
+              .replace(/<header[\s\S]*?<\/header>/gi, ' ')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/&nbsp;/gi, ' ')
+              .replace(/&amp;/gi, '&')
+              .replace(/&lt;/gi, '<')
+              .replace(/&gt;/gi, '>')
+              .replace(/&quot;/gi, '"')
+              .replace(/&#39;/gi, "'")
+              .replace(/\s+/g, ' ')
+              .trim();
+            // Limitar a 8000 caracteres para não estourar o contexto
+            if (text.length > 8000) {
+              text = text.slice(0, 8000) + '... [conteúdo truncado]';
+            }
+            resolve(text);
+          } catch (parseErr) {
+            reject(new Error(`Erro ao processar conteúdo de ${currentUrl}: ${parseErr.message}`));
+          }
+        });
+      });
+      req.on('error', (e) => reject(e));
+      req.on('timeout', () => { req.destroy(); reject(new Error(`Timeout ao acessar ${currentUrl}`)); });
     };
     handle(url, maxRedirects);
   } catch (e) { reject(e); }
@@ -738,7 +804,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
     const isImageEditRequest = hasImageAttachment && (
       /edite|editar|remova|remover|recrie|recriar|altere|alterar|mude|mudar|refaça|refazer|apague|apagar|troque|trocar|retire|retirar/i.test(mLower)
     );
-    const isImageGenerationRequest = (
+    const isImageGenerationRequest = !!agent?.canHandleImages && (
       /crie.*?imagem/i.test(mLower) ||
       /gerar.*?imagem/i.test(mLower) ||
       /create.*?image/i.test(mLower) ||
@@ -1026,6 +1092,31 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
         const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
 
         // Reconstruindo userParts para cada tentativa (necessário pois o objeto pode ser consumido/modificado internamente)
+
+        // --- URL Fetching: se o agente tem canReadUrls, detectar e buscar conteúdo de URLs na mensagem ---
+        let urlContentLines = [];
+        if (agent?.canReadUrls) {
+          const urlRegex = /https?:\/\/[^\s<>"'`,;)\]]+/gi;
+          const foundUrls = (message || '').match(urlRegex) || [];
+          const uniqueUrls = [...new Set(foundUrls)].slice(0, 5); // max 5 URLs
+          if (uniqueUrls.length > 0) {
+            console.log(`[chat/url-fetch] Agente ${agent?.name} com canReadUrls. URLs encontradas:`, uniqueUrls);
+            const fetchResults = await Promise.allSettled(
+              uniqueUrls.map(u => fetchUrlAsText(u))
+            );
+            for (let i = 0; i < uniqueUrls.length; i++) {
+              const r = fetchResults[i];
+              if (r.status === 'fulfilled' && r.value) {
+                urlContentLines.push(`Conteúdo extraído de ${uniqueUrls[i]}:\n${r.value}`);
+                console.log(`[chat/url-fetch] Sucesso: ${uniqueUrls[i]} (${r.value.length} chars)`);
+              } else {
+                urlContentLines.push(`Não foi possível acessar ${uniqueUrls[i]}: ${r.reason?.message || 'erro desconhecido'}`);
+                console.warn(`[chat/url-fetch] Falha: ${uniqueUrls[i]}`, r.reason?.message);
+              }
+            }
+          }
+        }
+
         const currentContextual = [
           `Perfil do usuário: ${sanitize([
             userProfile?.userName, userProfile?.userRole, userProfile?.companyName,
@@ -1037,6 +1128,7 @@ app.post('/api/ai/chat', ensureJsonBody, requireAuth, limitAIChat, async (req, r
           guidance ? `Orientação sugerida: ${sanitize(guidance)}` : '',
           summarizeHistory(chatHistory) ? `Histórico recente:\n${summarizeHistory(chatHistory)}` : '',
           attachmentLines.length ? attachmentLines.join('\n') : '',
+          urlContentLines.length ? `Conteúdo de páginas web fornecidas pelo usuário:\n${urlContentLines.join('\n\n')}` : '',
           `Mensagem do usuário: ${sanitize(message)}`,
           `Instruções de resposta: Responda em português. Seja objetivo e profissional.`
         ].filter(Boolean).join('\n\n');
