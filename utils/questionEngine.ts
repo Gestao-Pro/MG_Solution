@@ -146,15 +146,14 @@ export function getNextAgentQuestion(
 
   const guidanceExtra = infoAvoid ? ` (Nota: O usuário já informou sobre ${infoAvoid}, não pergunte novamente sobre isso.)` : '';
   
+  // Greeting prefix removed to avoid redundant time-based greetings.
+  // The agent's own greeting (via getAgentGreeting) will be used instead.
   let prefix: string | undefined = undefined;
-  if (isGreeting(userMessage)) {
-    const firstName = String(profile?.userName || '').split(' ')[0];
-    const isNight = normalize(userMessage).includes('noite');
-    const isAfternoon = normalize(userMessage).includes('tarde');
-    const hiBase = isNight ? 'Boa noite' : (isAfternoon ? 'Boa tarde' : 'Bom dia');
-    const hi = `${hiBase}${firstName ? `, ${firstName}` : ''}!`;
-    prefix = hi;
-  }
+  // Note: Previously, greetingPrefix was generated based on user message greetings.
+  // This caused responses like "Boa tarde, Olair!" before agent messages.
+  // Keeping prefix undefined ensures agents use their configured greetings only.
+  // If future custom behavior is needed, it can be reintroduced with appropriate checks.
+  // (No code changes needed beyond this comment).
   return { 
     question: (finalQuestion + guidanceExtra).endsWith('?') || guidanceExtra ? finalQuestion + guidanceExtra : `${finalQuestion}?`, 
     stage, 
