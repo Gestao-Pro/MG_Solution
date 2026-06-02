@@ -60,7 +60,7 @@ export const generateSpeech = async (
   }
 };
 
-import { Analysis, UserProfile } from '@/types';
+import { Analysis, UserProfile, Message } from '@/types';
 
 export type PdfReportSolutionFromApi = {
   agentId: string;
@@ -75,12 +75,68 @@ export type PdfReportResponse = {
 };
 
 export const generatePdfReportContent = async (
-  input: { analysis: Analysis; userProfile: UserProfile }
+  input: { analysis: Analysis; userProfile: UserProfile; chatHistory?: Message[]; agentName?: string; agentSpecialty?: string }
 ): Promise<PdfReportResponse> => {
-  const { analysis, userProfile } = input;
-  console.log(`Gerando conteúdo de relatório PDF para análise: ${JSON.stringify(analysis)} e perfil: ${JSON.stringify(userProfile)}`);
+  const { analysis, userProfile, chatHistory, agentName, agentSpecialty } = input;
+  console.log(`[PDF] Gerando conteúdo para agente: ${agentName}, mensagens no histórico: ${chatHistory?.length ?? 0}`);
 
-  // Geração simples e determinística baseada nos dados já disponíveis
+  // ── Caminho principal: agente individual com histórico de conversa ──
+  if (chatHistory && chatHistory.length > 0 && analysis.involvedAgentIds.length === 1) {
+    const agentId = analysis.involvedAgentIds[0];
+    const foundAgent = AGENTS.find(a => a.id === agentId);
+    const resolvedAgentName = agentName || foundAgent?.name || agentId;
+    const resolvedAgentSpecialty = agentSpecialty || foundAgent?.specialty || analysis.problemSummary;
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const resp = await apiFetch('/api/ai/report-synthesis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          agentName: resolvedAgentName,
+          agentSpecialty: resolvedAgentSpecialty,
+          chatHistory,
+          userProfile,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData?.error || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+
+      return {
+        rewrittenProblem: data.rewrittenProblem || `Sessão de consultoria com ${agentName || agentId}.`,
+        rewrittenSolutions: [{
+          agentId,
+          rewrittenSolution: data.rewrittenSolution || `Recomendações geradas na conversa.`,
+          visualPrompt: data.visualPrompt || `Professional business consulting diagram, clean minimalist design.`,
+          visualTitle: data.visualTitle || `Diagrama de Apoio`,
+        }],
+      };
+    } catch (err) {
+      console.error('[PDF] Falha no endpoint report-synthesis, usando fallback:', err);
+      // Fallback: usar a última mensagem do agente
+      const agentMsgs = chatHistory.filter(m => m.sender === 'agent' && m.text);
+      const lastAgentText = agentMsgs[agentMsgs.length - 1]?.text || 'Sem recomendações disponíveis.';
+      return {
+        rewrittenProblem: analysis.problemSummary,
+        rewrittenSolutions: [{
+          agentId,
+          rewrittenSolution: lastAgentText,
+          visualPrompt: `Professional business consulting diagram, clean minimalist design.`,
+          visualTitle: `Diagrama de Apoio`,
+        }],
+      };
+    }
+  }
+
+  // ── Fallback para múltiplos agentes ou sem histórico ──
   const companyBits = [
     userProfile.companyName,
     userProfile.companyField,
@@ -91,16 +147,12 @@ export const generatePdfReportContent = async (
 
   const rewrittenSolutions: PdfReportSolutionFromApi[] = (analysis.involvedAgentIds || []).map((agentId: string) => ({
     agentId,
-    rewrittenSolution: `Recomendação inicial para ${agentId}: **Direção:** Foque nas ações com maior impacto e menor complexidade. *Passo 1:* Defina 1 objetivo claro; *Passo 2:* Liste 2 iniciativas; *Passo 3:* Estabeleça um KPI para acompanhamento.`,
-    visualPrompt: `Visual simples para agente ${agentId}: gráfico ou diagrama de etapas.`,
-    visualTitle: `Visual de apoio – ${agentId}`,
+    rewrittenSolution: `**Direção Estratégica:** Foque nas ações com maior impacto e menor complexidade.\n\n*Passo 1:* Defina 1 objetivo claro;\n*Passo 2:* Liste 2 iniciativas prioritárias;\n*Passo 3:* Estabeleça um KPI para acompanhamento.`,
+    visualPrompt: `Professional business strategy roadmap diagram for ${agentId}, clean minimalist design.`,
+    visualTitle: `Mapa Estratégico – ${agentId}`,
   }));
 
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve({ rewrittenProblem, rewrittenSolutions });
-    }, 800);
-  });
+  return { rewrittenProblem, rewrittenSolutions };
 };
 
 export const generateVisualForReport = async (prompt: string | Record<string, unknown>): Promise<string> => {
@@ -208,11 +260,16 @@ export const generateChatResponse = async (
       return `${prefix}${base}${question}`.trim();
     })();
 
+    const agentWithGlobalInstruction = {
+      ...agent,
+      systemInstruction: `${agent?.systemInstruction || ''}\n\nIMPORTANTE: Quando você concluir sua análise, responder todas as dúvidas e considerar que o seu trabalho final está pronto para este atendimento, adicione OBRIGATORIAMENTE a tag [ANALISE_CONCLUIDA] no final da sua mensagem. Essa tag não aparecerá para o usuário, ela serve para o sistema saber que pode liberar o botão de relatório.`
+    };
+
     const token = localStorage.getItem('authToken');
     const resp = await apiFetch('/api/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify({ message, agent, userProfile, chatHistory, guidance, stage, chartData, documentContent, imagePayloads })
+      body: JSON.stringify({ message, agent: agentWithGlobalInstruction, userProfile, chatHistory, guidance, stage, chartData, documentContent, imagePayloads })
     });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));

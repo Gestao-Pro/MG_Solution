@@ -1,7 +1,7 @@
 
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Analysis, UserProfile } from '../types';
+import { Analysis, UserProfile, Message } from '../types';
 import IconButton from './IconButton';
 import { X, Download, Loader } from 'lucide-react';
 import { generatePdfReportContent, generateVisualForReport } from '../services/geminiService';
@@ -15,6 +15,7 @@ interface ReportModalProps {
     analysis: Analysis;
     onClose: () => void;
     userProfile: UserProfile; // Add userProfile to props
+    chatHistory?: Message[]; // Add chatHistory for single agent report
 }
 
 interface RewrittenSolution {
@@ -29,7 +30,7 @@ interface ReportData {
     rewrittenSolutions: RewrittenSolution[];
 }
 
-const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfile }) => {
+const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfile, chatHistory }) => {
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState('Iniciando a geração do relatório...');
     const [reportData, setReportData] = useState<ReportData | null>(null);
@@ -40,7 +41,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfil
         const generateReport = async () => {
             try {
                 setStatus('Reescrevendo a análise em linguagem de negócios...');
-                const { rewrittenProblem, rewrittenSolutions: solutionsFromApi } = await generatePdfReportContent({ analysis, userProfile });
+                const { rewrittenProblem, rewrittenSolutions: solutionsFromApi } = await generatePdfReportContent({ analysis, userProfile, chatHistory });
                 
                 setStatus('Identificando oportunidades para visuais...');
                 const solutionsWithVisuals: RewrittenSolution[] = await Promise.all(
@@ -129,38 +130,55 @@ const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfil
     
             const renderStyledText = (text: string, initialX: number, maxWidth: number) => {
                 const lineHeight = 5;
-                const lines = pdf.splitTextToSize(text, maxWidth);
+                const paragraphs = text.split('\n');
             
-                for (const line of lines) {
-                    if (currentY + lineHeight > pdfHeight - 20) {
+                for (const para of paragraphs) {
+                    const lines = pdf.splitTextToSize(para, maxWidth);
+                    const blockHeight = lines.length * lineHeight;
+            
+                    // Se o parágrafo inteiro não couber e já não estivermos no topo de uma nova página,
+                    // adicionamos uma nova página antes de começar a renderizar este parágrafo.
+                    if (currentY + blockHeight > pdfHeight - 20 && currentY > margin + 5) {
                         pdf.addPage();
-                        currentY = margin; // Reset Y on new page
+                        currentY = margin + 10;
                     }
             
-                    let currentX = initialX;
-                    // Regex to split by **bold** or *italic* while keeping the delimiters for identification
-                    const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(p => p);
-            
-                    for (const part of parts) {
-                        let style = 'normal';
-                        let content = part;
-            
-                        if (part.startsWith('**') && part.endsWith('**')) {
-                            style = 'bold';
-                            content = part.substring(2, part.length - 2);
-                        } else if (part.startsWith('*') && part.endsWith('*')) {
-                            style = 'italic';
-                            content = part.substring(1, part.length - 1);
+                    for (const line of lines) {
+                        if (currentY + lineHeight > pdfHeight - 20) {
+                            pdf.addPage();
+                            currentY = margin + 10;
                         }
             
-                        // Set the font style for this part
-                        pdf.setFont('helvetica', style);
-                        
-                        // Render the part and update the X position
-                        pdf.text(content, currentX, currentY);
-                        currentX += pdf.getStringUnitWidth(content) * pdf.getFontSize() / pdf.internal.scaleFactor;
+                        let currentX = initialX;
+                        // Regex to split by **bold** or *italic* while keeping the delimiters for identification
+                        const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(p => p);
+            
+                        for (const part of parts) {
+                            let style = 'normal';
+                            let content = part;
+            
+                            if (part.startsWith('**') && part.endsWith('**')) {
+                                style = 'bold';
+                                content = part.substring(2, part.length - 2);
+                            } else if (part.startsWith('*') && part.endsWith('*')) {
+                                style = 'italic';
+                                content = part.substring(1, part.length - 1);
+                            }
+            
+                            // Set the font style for this part
+                            pdf.setFont('helvetica', style);
+                            
+                            // Render the part and update the X position
+                            pdf.text(content, currentX, currentY);
+                            currentX += pdf.getStringUnitWidth(content) * pdf.getFontSize() / pdf.internal.scaleFactor;
+                        }
+                        currentY += lineHeight; // Move to the next line
                     }
-                    currentY += lineHeight; // Move to the next line
+                    
+                    // Pequeno espaçamento adicional entre parágrafos se não estiver vazio
+                    if (para.trim().length > 0) {
+                        currentY += 2;
+                    }
                 }
             };
     
@@ -342,9 +360,11 @@ const ReportModal: React.FC<ReportModalProps> = ({ analysis, onClose, userProfil
                 currentY += 8; // Espaçamento entre itens do sumário
             }
     
-            // 5. Adicionar Cabeçalhos e Rodapés em todas as páginas
+            // 5. Adicionar Cabeçalhos e Rodapés em todas as páginas (exceto na capa/página 1)
             const totalPages = pdf.internal.getNumberOfPages();
             for (let i = 1; i <= totalPages; i++) {
+                if (i === 1) continue; // Pular a capa para manter layout limpo
+                
                 pdf.setPage(i);
     
                 // Cabeçalho simplificado (apenas a linha)

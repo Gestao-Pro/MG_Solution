@@ -773,6 +773,7 @@ const App: React.FC = () => {
                                             history={history.sessions}
                                             onLoadSession={loadSession}
                                             onDeleteSession={deleteSession}
+                                            userProfile={userProfile}
                                         />
                                     )}
                                     {view === 'analysis' && currentAnalysis && userProfile && (

@@ -1232,6 +1232,87 @@ app.post('/api/ai/superboss', ensureJsonBody, requireAuth, limitSuperBoss, async
   }
 });
 
+// Síntese de relatório PDF a partir do histórico de conversa de um agente individual
+app.post('/api/ai/report-synthesis', ensureJsonBody, requireAuth, async (req, res) => {
+  try {
+    const { agentName, agentSpecialty, chatHistory, userProfile } = req.body || {};
+    if (!chatHistory || !Array.isArray(chatHistory) || chatHistory.length === 0) {
+      return res.status(400).json({ error: 'chatHistory é obrigatório e deve ser um array não vazio.' });
+    }
+
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY não configurado no servidor' });
+    }
+
+    const sanitize = (v) => {
+      try {
+        const s = String(v || '').trim();
+        return s.length > 3000 ? s.slice(0, 3000) + '...' : s;
+      } catch { return ''; }
+    };
+
+    // Montar transcrição limpa excluindo mensagens de boas-vindas genéricas
+    const transcript = chatHistory
+      .filter(m => m.text && m.text.trim().length > 5)
+      .map(m => `${m.sender === 'user' ? 'Usuário' : (agentName || 'Agente')}: ${sanitize(m.text)}`)
+      .join('\n');
+
+    const companyContext = [
+      userProfile?.companyName,
+      userProfile?.companyField,
+      userProfile?.companySize,
+      userProfile?.mainProduct,
+    ].filter(Boolean).join(' · ');
+
+    const prompt = `Você é um redator especialista em relatórios executivos de negócios.
+Com base na transcrição abaixo de uma sessão de consultoria entre um usuário e o agente especialista "${agentName || 'Especialista'}" (${agentSpecialty || 'Consultoria'}), crie um relatório formal, estruturado e profissional.
+
+Contexto da empresa: ${companyContext || 'Empresa de pequeno/médio porte.'}
+
+TRANSCRIÇÃO DA SESSÃO:
+${transcript}
+
+INSTRUÇÕES PARA O RELATÓRIO:
+- Extraia apenas as informações de valor geradas pelo agente especialista.
+- Ignore saudações, repetições, elogios ou perguntas de diagnóstico (NUNCA comece com textos conversacionais como "Excelente, Olair!", "Parabéns...", ou "Abaixo está..."). O texto deve ir direto ao assunto do relatório.
+- Se a conversa envolver uma meta de faturamento (ex: R$ 20.000,00/mês), garanta que o relatório detalhe matematicamente ou sugira cenários de volume de assinaturas (ex: ticket médio vs número de clientes ativos necessários para bater a meta).
+- As metas, KPIs e cronogramas no plano devem ser extremamente específicos, estratégicos e mensuráveis, fornecendo ao usuário um guia prático para direcioná-lo ao objetivo.
+- Estruture em seções claras de negócio. Use **negrito** para títulos e *itálico* para ênfase.
+- Inclua os próximos passos práticos mencionados na conversa.
+
+Responda SOMENTE com um JSON válido (sem markdown, sem blocos de código) no formato abaixo:
+{
+  "rewrittenProblem": "Resumo executivo do desafio ou objetivo de faturamento identificado na sessão (2-4 frases)",
+  "rewrittenSolution": "Corpo completo do relatório com as análises, recomendações e plano de ação estruturado propostos pelo agente, formatado com marcadores e seções claras. Use **negrito** para títulos e *itálico* para ênfase.",
+  "visualPrompt": "Prompt em inglês para gerar uma ilustração profissional relevante ao tema desta consultoria (ex: strategic planning diagram, business roadmap flowchart)",
+  "visualTitle": "Título descritivo em português para a ilustração"
+}`;
+
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+
+    const rawText = result?.response?.candidates?.[0]?.content?.parts?.map(p => p?.text || '').join('').trim() || '';
+
+    // Extrair JSON da resposta (pode vir com markdown delimiters)
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('[report-synthesis] Não foi possível extrair JSON da resposta:', rawText.slice(0, 200));
+      return res.status(500).json({ error: 'Modelo não retornou JSON válido.' });
+    }
+
+    const data = JSON.parse(jsonMatch[0]);
+    res.json(data);
+  } catch (e) {
+    console.error('Falha em /api/ai/report-synthesis:', e?.message || e);
+    res.status(500).json({ error: 'Falha ao sintetizar relatório.' });
+  }
+});
+
 // Rota de webhook do Stripe movida para o topo do ficheiro com parser correto
 // app.post('/api/stripe/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => { ... });
 

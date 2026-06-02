@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Agent, Message as MessageType } from '../types';
+import { Agent, Message as MessageType, UserProfile, Analysis, AnalysisSession } from '../types';
 import Message from './Message';
 import IconButton from './IconButton';
-import { Send, Mic, Square, ArrowLeft, Paperclip, X, Image as ImageIcon, FileSpreadsheet, FileText, History } from 'lucide-react';
+import { Send, Mic, Square, ArrowLeft, Paperclip, X, Image as ImageIcon, FileSpreadsheet, FileText, History, Download } from 'lucide-react';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import { generateSpeech } from '../services/geminiService';
 import { getPreferredVoice, getFallbackVoice } from '../utils/voiceConfig';
 import Avatar from './Avatar';
 import ChatHistorySidebar from './ChatHistorySidebar';
-import { AnalysisSession } from '../types';
+import ReportModal from './ReportModal';
 
 interface ChatViewProps {
     agent: Agent;
@@ -22,6 +22,7 @@ interface ChatViewProps {
     history?: AnalysisSession[];
     onLoadSession?: (sessionId: string) => void;
     onDeleteSession?: (sessionId: string) => void;
+    userProfile: UserProfile;
 }
 
 const ChatView: React.FC<ChatViewProps> = ({ 
@@ -35,7 +36,8 @@ const ChatView: React.FC<ChatViewProps> = ({
     onSaveSession,
     history = [],
     onLoadSession,
-    onDeleteSession
+    onDeleteSession,
+    userProfile
 }) => {
     const [inputText, setInputText] = useState('');
     const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -47,6 +49,7 @@ const ChatView: React.FC<ChatViewProps> = ({
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [messageAudios, setMessageAudios] = useState<Record<string, string>>({});
     const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -345,6 +348,15 @@ const ChatView: React.FC<ChatViewProps> = ({
                         tooltip="Histórico do Chat" 
                         className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800"
                     />
+                    {messages.some(msg => msg.sender === 'agent' && msg.text?.includes('[ANALISE_CONCLUIDA]')) && (
+                        <button
+                            onClick={() => setIsReportModalOpen(true)}
+                            className="px-3 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white font-medium shadow-sm transition-colors flex items-center gap-1.5"
+                            title="Gerar Relatório (PDF)"
+                        >
+                            <Download size={16} /> Relatório (PDF)
+                        </button>
+                    )}
                     <button
                         onClick={handleClearConversationClick}
                         className="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm transition-colors"
@@ -523,6 +535,17 @@ const ChatView: React.FC<ChatViewProps> = ({
                     </div>
                 </div>
             </footer>
+            {isReportModalOpen && (
+                <ReportModal 
+                    analysis={{
+                        problemSummary: `Interação individual com o agente ${agent.name} (${agent.specialty})`,
+                        involvedAgentIds: [agent.id]
+                    }} 
+                    onClose={() => setIsReportModalOpen(false)} 
+                    userProfile={userProfile} 
+                    chatHistory={messages}
+                />
+            )}
         </div>
     );
 };

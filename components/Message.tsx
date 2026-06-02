@@ -277,7 +277,7 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                         )}
                     </div>
                 )}
-                {message.text && <div className="whitespace-pre-wrap">{message.text}</div>}
+                {message.text && <div className="whitespace-pre-wrap">{message.text.replace('[ANALISE_CONCLUIDA]', '')}</div>}
                 {!isUser && message.promptText && (
                     <div className="mt-2">
                         {!showPrompt ? (
@@ -320,7 +320,7 @@ const Message: React.FC<MessageProps> = ({ message, onPlayAudio, audioUrl }) => 
                         ) : (
                              <IconButton
                                 icon={Volume2}
-                                onClick={() => onPlayAudio(message.id, message.text, message.agent)}
+                                onClick={() => onPlayAudio(message.id, (message.text || '').replace('[ANALISE_CONCLUIDA]', ''), message.agent)}
                                 tooltip="Ouvir Resposta"
                                 size="sm"
                                 className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-600 dark:text-gray-200"
