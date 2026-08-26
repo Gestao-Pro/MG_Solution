@@ -4,6 +4,8 @@ import { LandingHeader } from '../components/LandingHeader';
 import { Hero } from '../components/Hero';
 import { HowItWorks } from '../components/HowItWorks';
 import AgentsSection from '../components/AgentsSection';
+import SuperBossSection from '../components/SuperBossSection';
+import DifferentialSection from '../components/DifferentialSection';
 import { Features } from '../components/Features';
 import Plans from '../components/Plans';
 import { FAQ } from '../components/FAQ';
@@ -27,7 +29,9 @@ const LandingPage: React.FC = () => {
       <LandingHeader onLoginClick={handleLoginClick} />
       <Hero onLoginClick={handleLoginClick} />
       <HowItWorks />
+      <SuperBossSection />
       <AgentsSection />
+      <DifferentialSection />
       <Features />
       <Plans />
       <FAQ />

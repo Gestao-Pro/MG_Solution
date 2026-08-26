@@ -7,11 +7,11 @@ export const Footer: React.FC = () => {
       <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
         {/* Coluna 1: Logo e Descrição */}
         <div className="flex flex-col gap-4 py-4 overflow-visible">
-            <img 
-                src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png" 
-                alt="GestãoPro Logo" 
-                className="h-32 w-auto object-contain block self-start brightness-120" 
-              />
+          <img
+            src="https://i.postimg.cc/sfK9DxF0/Logocerta7.png"
+            alt="GestãoPro Logo"
+            className="h-32 w-auto object-contain block self-start brightness-120"
+          />
           <p className="text-gray-400 mt-2">
             O futuro da gestão empresarial impulsionado por inteligência artificial.
           </p>
@@ -44,13 +44,13 @@ export const Footer: React.FC = () => {
         <div>
           <h4 className="text-xl font-semibold text-white mb-4">Contato</h4>
           <p className="text-sm">
-            Email: <a href="mailto:contato@gestaopro.com" className="hover:text-white transition-colors duration-300">contato@gestaopro.com</a>
+            Email: <a href="mailto:gestaopro.mgsolution@gmail.com" className="hover:text-white transition-colors duration-300">gestaopro.mgsolution@gmail.com</a>
           </p>
           <p className="text-sm">
-            Telefone: <a href="tel:+5511999999999" className="hover:text-white transition-colors duration-300">+55 11 99999-9999</a>
+            Telefone: <a href="tel:+5511999999999" className="hover:text-white transition-colors duration-300">+55 54 98142-9024</a>
           </p>
           <p className="text-sm mt-4">
-            Endereço: Rua Exemplo, 123 - São Paulo, SP
+            Endereço: Rua Caldas Jr, 848 - Não-me-Toque/RS
           </p>
         </div>
       </div>

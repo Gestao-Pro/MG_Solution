@@ -186,9 +186,9 @@ const AgentsSection: React.FC = () => {
     <section id="agents" className="reveal py-20 md:py-32 bg-slate-900/50 overflow-hidden">
       <div className="container mx-auto px-6">
         <AnimatedElement className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Áreas em que a IA pode ajudar seu negócio</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Especialistas de IA para diferentes áreas do seu negócio</h2>
           <p className="text-lg text-gray-400">
-            O GestãoPro atua em diferentes áreas para ajudar você a crescer com mais organização e eficiência.
+            Consulte especialistas de IA em diferentes áreas antes de tomar decisões importantes para sua empresa.
           </p>
         </AnimatedElement>
 

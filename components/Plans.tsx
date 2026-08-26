@@ -85,8 +85,8 @@ const Plans: React.FC = () => {
       <div className="container mx-auto px-6">
         <AnimatedElement className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Planos simples e transparentes</h2>
-          <p className="text-base md:text-lg text-gray-400">Escolha o plano ideal e comece a economizar horas no seu dia.</p>
-          <p className="text-indigo-400 font-bold mt-4 text-sm md:text-base">Menos tempo em tarefas. Mais tempo para crescer.</p>
+          <p className="text-base md:text-lg text-gray-400">Escolha o plano ideal e tenha especialistas de IA disponíveis para suas análises e decisões.</p>
+          <p className="text-indigo-400 font-bold mt-4 text-sm md:text-base">Mais clareza para decisões importantes. Você continua no comando.</p>
         </AnimatedElement>
         {error && (
           <div className="text-center mb-6 text-yellow-500">{error}</div>
@@ -149,7 +149,7 @@ const Plans: React.FC = () => {
                 <li>Agentes adicionais como add-on (preço por especialidade)</li>
               </ul>
               <div className="mt-4 flex items-center gap-3">
-                <button onClick={() => onCtaClick('pro')} className="inline-block px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700">Quero mais produtividade</button>
+                <button onClick={() => onCtaClick('pro')} className="inline-block px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700">Começar agora</button>
                 {cycle==='yearly' && hasYearly && discountPercent('pro') && (
                   <span className="text-xs text-green-400" title="Economia: (12 × preço mensal − preço anual) ÷ (12 × preço mensal)">Economize {discountPercent('pro')}%</span>
                 )}
@@ -172,7 +172,7 @@ const Plans: React.FC = () => {
                 <li>Agentes adicionais como add-on (preço por especialidade)</li>
               </ul>
               <div className="mt-4 flex items-center gap-3">
-                <button onClick={() => onCtaClick('premium')} className="inline-block px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700">Escalar meu negócio</button>
+                <button onClick={() => onCtaClick('premium')} className="inline-block px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700">Começar agora</button>
                 {cycle==='yearly' && hasYearly && premiumYearly && premium && (
                   <span className="text-xs text-green-400" title="Economia anual vs mensal">
                     Economize {(() => {
@@ -189,6 +189,9 @@ const Plans: React.FC = () => {
         </div>
         <div className="text-center mt-6 text-xs text-gray-400">
           Agentes adicionais podem ser adquiridos individualmente conforme a necessidade. O valor varia de acordo com a especialidade estratégica do agente.
+        </div>
+        <div className="mt-8 max-w-2xl mx-auto bg-slate-800/40 border border-slate-700 rounded-lg px-6 py-4 text-sm text-gray-400 text-center italic">
+          Os agentes da GestãoPro atuam como consultores de IA: analisam informações, apresentam perspectivas e recomendações. A decisão e a execução permanecem sob responsabilidade do usuário.
         </div>
         <div className="text-center mt-10">
           <button onClick={onFreeClick} className="text-indigo-400 hover:text-indigo-300">Prefere testar primeiro? Acesse a versão Free</button>

@@ -31,23 +31,35 @@ export const FAQ: React.FC = () => {
   const faqs = [
     {
       question: "Preciso saber usar Inteligência Artificial?",
-      answer: "Não! O GestãoPro foi feito para ser simples e intuitivo. Você conversa com a IA de forma natural, como se estivesse falando com um consultor.",
+      answer: "Não! A GestãoPro foi feita para ser simples e intuitiva. Você apresenta seu desafio de forma natural, como se estivesse consultando um especialista, e recebe análises e recomendações prontas para avaliar.",
     },
     {
       question: "Funciona para pequenos negócios?",
-      answer: "Com certeza. A plataforma foi desenhada especificamente para atender MEIs, micro e pequenas empresas que precisam de organização e eficiência.",
+      answer: "Com certeza. A plataforma foi desenhada especificamente para atender MEIs, micro e pequenas empresas que precisam de análise, orientação estratégica e apoio na tomada de decisões.",
     },
     {
       question: "Consigo usar sozinho?",
-      answer: "Sim. A ferramenta orienta você em cada passo, sugerindo soluções e planos de ação práticos para o seu dia a dia.",
+      answer: "Sim. Os especialistas da GestãoPro orientam você em cada análise, apresentando perspectivas e recomendações práticas para apoiar suas decisões no dia a dia.",
     },
     {
-      question: "Em quanto tempo vejo resultados?",
-      answer: "Muitos usuários percebem ganho de tempo e clareza logo no primeiro dia, ao organizar suas tarefas e receber as primeiras orientações estratégicas.",
+      question: "A GestãoPro toma decisões sozinha?",
+      answer: "Não. A GestãoPro foi desenvolvida para apoiar o empresário na tomada de decisões. Seus especialistas analisam situações, identificam oportunidades, avaliam alternativas e apresentam recomendações. A decisão final é sempre do usuário.",
+    },
+    {
+      question: "A GestãoPro executa processos automaticamente?",
+      answer: "Não. A GestãoPro não é uma plataforma de automação de processos empresariais. Seu papel é oferecer inteligência, análise e recomendações para ajudar você a decidir com mais segurança e assertividade.",
+    },
+    {
+      question: "A GestãoPro substitui meu ERP?",
+      answer: "Não. A GestãoPro não tem como objetivo substituir seu ERP ou os sistemas operacionais da empresa. Ela atua como uma camada de inteligência e aconselhamento para ajudar você a analisar informações e tomar decisões melhores.",
+    },
+    {
+      question: "A GestãoPro substitui o empresário?",
+      answer: "Não. A GestãoPro foi criada para ampliar a capacidade de análise do empresário, não para substituí-lo. A IA oferece conhecimento, perspectivas e recomendações. Você continua no comando.",
     },
     {
       question: "Serve para o meu tipo de negócio?",
-      answer: "Sim. Nossos agentes cobrem áreas universais como Vendas, Marketing, Finanças e Processos, adaptando as sugestões à sua realidade específica.",
+      answer: "Sim. Os especialistas cobrem áreas universais como Vendas, Marketing, Finanças, Estratégia, Processos e Pessoas, adaptando as análises e recomendações à sua realidade específica.",
     },
   ];
 

@@ -65,13 +65,13 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
       <div className="container mx-auto px-4 md:px-10 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
         <div className="lg:w-3/4 text-center lg:text-left flex flex-col items-center lg:items-start mt-[45vw] sm:mt-[350px] md:mt-[350px]">
           <h1 className="hero-title text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold leading-tight mb-3 md:mb-6 max-w-2xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-            Organize seu negócio e ganhe tempo com <span className="text-indigo-400">Inteligência Artificial</span>
+            Tome decisões melhores para o seu negócio com <span className="text-indigo-400">Inteligência Artificial</span>
           </h1>
           <p className="hero-sub text-sm md:text-base text-gray-300 mb-2 max-w-xl mx-auto lg:mx-0">
-            Pare de se perder em tarefas. Organize seu dia, crie conteúdos e tome decisões mais rápido — tudo em um só lugar.
+            Tenha uma equipe de especialistas em IA para analisar seus desafios, identificar oportunidades, avaliar alternativas e recomendar os melhores caminhos para sua empresa.
           </p>
-          <p className="hero-sub text-xs md:text-sm text-indigo-300 mb-6 font-medium">
-            Economize horas por semana e tenha mais controle do seu negócio.
+          <p className="hero-sub text-xs md:text-sm text-indigo-300 mb-6 font-semibold tracking-wide">
+            A IA analisa. A IA recomenda. Você decide.
           </p>
           <div className="hero-sub flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
             <button
@@ -79,13 +79,13 @@ export const Hero: React.FC<{ onLoginClick?: () => void }> = ({ onLoginClick }) 
               onClick={() => onLoginClick?.()}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg"
             >
-              Comece Agora
+              Começar agora
             </button>
             <a
               href="#how-it-works"
               className="bg-transparent border border-indigo-500 text-indigo-300 font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 hover:bg-indigo-600 hover:text-white"
             >
-              Ver Como Funciona
+              Conhecer a GestãoPro
             </a>
           </div>
         </div>
