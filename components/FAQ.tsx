@@ -30,6 +30,10 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
 export const FAQ: React.FC = () => {
   const faqs = [
     {
+      question: "Então, o que a GestãoPro realmente faz?",
+      answer: "A GestãoPro funciona como uma equipe de especialistas de IA e um conselheiro estratégico. Você apresenta um problema, dúvida ou decisão; os especialistas analisam o contexto, apresentam diferentes perspectivas e recomendações, e você utiliza essas informações para tomar a decisão final.",
+    },
+    {
       question: "Preciso saber usar Inteligência Artificial?",
       answer: "Não! A GestãoPro foi feita para ser simples e intuitiva. Você apresenta seu desafio de forma natural, como se estivesse consultando um especialista, e recebe análises e recomendações prontas para avaliar.",
     },

@@ -8,7 +8,7 @@ export const LandingHeader: React.FC<{ onLoginClick?: () => void }> = ({ onLogin
     { name: 'Início', href: '#home' },
     { name: 'Recursos', href: '#features' },
     { name: 'Como Funciona', href: '#how-it-works' },
-    { name: 'Agentes', href: '#agents' },
+    { name: 'Especialistas', href: '#agents' },
     { name: 'Planos', href: '#plans' },
     { name: 'FAQ', href: '#faq' },
   ];

@@ -112,6 +112,7 @@ const Plans: React.FC = () => {
           <AnimatedElement>
             <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20 hover:border-indigo-500/50">
               <h3 className="text-xl font-semibold text-white">Starter</h3>
+              <p className="text-indigo-300 text-sm font-medium mt-1 mb-2">Para começar a consultar especialistas de IA e tomar decisões com mais clareza.</p>
               {starter?.productName && (
                 <p className="text-xs text-gray-400">{starter.productName}{starter?.nickname ? ` · ${starter.nickname}` : ''}</p>
               )}
@@ -134,6 +135,7 @@ const Plans: React.FC = () => {
           <AnimatedElement delay={100}>
             <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20 hover:border-indigo-500/50">
               <h3 className="text-xl font-semibold text-white">Pro</h3>
+              <p className="text-indigo-300 text-sm font-medium mt-1 mb-2">Para empresários que querem contar com diferentes especialistas de IA em suas decisões do dia a dia.</p>
               {pro?.productName && (
                 <p className="text-xs text-gray-400">{pro.productName}{pro?.nickname ? ` · ${pro.nickname}` : ''}</p>
               )}
@@ -159,6 +161,7 @@ const Plans: React.FC = () => {
           <AnimatedElement delay={200}>
             <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20 hover:border-indigo-500/50">
               <h3 className="text-xl font-semibold text-white">Premium</h3>
+              <p className="text-indigo-300 text-sm font-medium mt-1 mb-2">Para quem deseja uma equipe mais completa de especialistas e maior apoio estratégico nas decisões do negócio.</p>
               {premium?.productName && (
                 <p className="text-xs text-gray-400">{premium.productName}{premium?.nickname ? ` · ${premium.nickname}` : ''}</p>
               )}
